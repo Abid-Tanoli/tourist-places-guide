@@ -1,0 +1,16 @@
+{
+  "name": "tourist-places-guide",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "backend": "cd Backend && npm run dev",
+    "user": "cd Frontend/User && npm run dev",
+    "admin": "cd Frontend/Admin && npm run dev",
+    "dev": "concurrently \"npm run backend\" \"npm run user\" \"npm run admin\"",
+    "install:all": "npm install && cd Backend && npm install && cd ../Frontend/User && npm install && cd ../Frontend/Admin && npm install",
+    "seed": "cd Backend && npm run seed"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
