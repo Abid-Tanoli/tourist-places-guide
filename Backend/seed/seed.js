@@ -25,12 +25,6 @@ const toSlug = (text) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
-const tourPrices = {
-  1: 85000,
-  2: 65000,
-  3: 45000,
-};
-
 const importData = async () => {
   try {
     await connectDB();
@@ -138,26 +132,27 @@ const importData = async () => {
     const placeIdMap = new Map(
       insertedPlaces.map((place) => [place.legacyId, place._id])
     );
+    const legacyPlaceMap = new Map(
+      insertedPlaces.map((place) => [place.legacyId, place])
+    );
 
-    // Create tours with new fields
+    // Create tours with full data from toursData
     const tourDocs = tours.map((tour) => ({
       legacyId: tour.id,
       name: tour.name,
       slug: toSlug(tour.name),
       description: tour.description,
-      shortDescription: tour.description
-        ? tour.description.substring(0, 150) + "..."
-        : "",
+      shortDescription: tour.shortDescription || tour.description?.substring(0, 150) + "...",
       days: tour.days,
-      price: tour.price || tourPrices[tour.id] || tour.days * 15000,
-      discount: 0,
-      included: [
+      price: tour.price,
+      discount: tour.discount || 0,
+      included: tour.included || [
         "Hotel accommodation",
         "Transportation",
         "Tour guide",
         "Meals (breakfast & dinner)",
       ],
-      excluded: [
+      excluded: tour.excluded || [
         "International flights",
         "Travel insurance",
         "Personal expenses",
@@ -166,22 +161,28 @@ const importData = async () => {
       route: tour.route
         .map((stop, index) => ({
           place: placeIdMap.get(stop.placeId),
-          day: stop.day || index + 1,
+          day: Math.min(stop.day || index + 1, tour.days),
           order: stop.order || index + 1,
-          description: "",
+          description: stop.description || "",
         }))
         .filter((stop) => stop.place),
-      capacity: 20,
-      availableSeats: 20,
+      schedule: [],
+      capacity: tour.capacity || 20,
+      availableSeats: tour.availableSeats ?? tour.capacity ?? 20,
       status: "published",
-      featured: true,
-      image: "",
-      images: [],
-      location: "Pakistan",
+      featured: tour.featured || false,
+      image: tour.image || tour.images?.[0] || tour.route?.map((stop) => legacyPlaceMap.get(stop.placeId)?.image).find(Boolean) || "",
+      images: tour.images?.length
+        ? tour.images
+        : tour.route?.map((stop) => legacyPlaceMap.get(stop.placeId)?.image).filter(Boolean) || [],
+      location: tour.location || "Pakistan",
     }));
 
-    await Tour.insertMany(tourDocs);
-    console.log(`${tourDocs.length} tours created.`);
+    // Validate routes have at least one stop
+    const validTourDocs = tourDocs.filter((tour) => tour.route.length > 0);
+
+    await Tour.insertMany(validTourDocs);
+    console.log(`${validTourDocs.length} tours created.`);
 
     // Create sample reviews
     const sampleReviews = insertedPlaces.slice(0, 5).map((place, index) => ({

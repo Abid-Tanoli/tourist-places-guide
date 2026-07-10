@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
 import UserLayout from "./layouts/UserLayout";
 
@@ -22,7 +22,7 @@ const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
 
 const Loading = () => (
   <div className="min-h-[60vh] flex items-center justify-center">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
   </div>
 );
 
@@ -160,7 +160,7 @@ const router = createBrowserRouter([
 function App() {
   return (
     <AuthProvider>
-      <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+      <Toaster position="top-right" richColors closeButton />
       <RouterProvider router={router} />
     </AuthProvider>
   );

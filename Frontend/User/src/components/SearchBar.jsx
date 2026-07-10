@@ -1,24 +1,24 @@
 import React from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 
 const SearchBar = ({ searchInput, setSearchInput, handleSearch }) => {
   return (
-    <form
-      onSubmit={handleSearch}
-      className="flex items-center bg-white rounded-lg overflow-hidden shadow-md w-full max-w-md"
-    >
-      <input
-        type="text"
-        placeholder="Search places..."
-        value={searchInput}
-        onChange={(e) => setSearchInput(e.target.value)}
-        className="flex-grow px-3 py-2 outline-none text-sm sm:text-base"
-      />
-      <button
-        type="submit"
-        className="bg-green-600 text-white px-3 sm:px-4 py-2 hover:bg-green-700 transition text-sm sm:text-base"
-      >
+    <form onSubmit={handleSearch} className="flex items-center gap-2 w-full max-w-md">
+      <div className="relative flex-1">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="Search places..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white focus:text-foreground"
+        />
+      </div>
+      <Button type="submit" className="bg-white text-primary hover:bg-white/90">
         Search
-      </button>
+      </Button>
     </form>
   );
 };

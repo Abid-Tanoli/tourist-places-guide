@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Heart, MapPin, Loader2, Star } from "lucide-react";
 
 const Wishlist = () => {
   const { user, toggleWishlist } = useAuth();
@@ -42,55 +46,78 @@ const Wishlist = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-sand-50 flex items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-[80vh] bg-gray-50 py-10 px-4">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">My Wishlist</h1>
+    <div className="min-h-screen bg-sand-50">
+      <div className="bg-primary text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <h1 className="font-heading text-4xl sm:text-5xl font-bold mb-3">My Wishlist</h1>
+          <p className="text-white/80 text-lg">Places you want to visit</p>
+        </div>
+      </div>
 
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         {places.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-xl shadow-sm">
-            <p className="text-gray-500 text-lg mb-4">Your wishlist is empty.</p>
-            <Link
-              to="/"
-              className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-            >
-              Explore Places
-            </Link>
-          </div>
+          <Card>
+            <CardContent className="p-12 text-center">
+              <Heart className="size-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">Your wishlist is empty</h3>
+              <p className="text-muted-foreground mb-6">Start exploring and save places you love!</p>
+              <Button asChild className="bg-primary hover:bg-primary/90">
+                <Link to="/">Explore Places</Link>
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {places.map((place) => (
-              <div key={place._id} className="bg-white rounded-xl shadow-sm overflow-hidden">
-                <img
-                  src={place.image}
-                  alt={place.name}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900">{place.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">{place.description}</p>
-                  <div className="flex items-center justify-between mt-3">
-                    <Link
-                      to={`/place/${place._id}`}
-                      className="text-blue-600 text-sm font-medium hover:underline"
-                    >
-                      View Details
-                    </Link>
-                    <button
+              <Card key={place._id} className="overflow-hidden group hover:shadow-lg transition-all duration-300">
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={place.image}
+                    alt={place.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <button
+                    onClick={() => handleRemove(place._id)}
+                    className="absolute top-3 right-3 size-9 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
+                  >
+                    <Heart className="size-4 fill-red-500 text-red-500" />
+                  </button>
+                  {place.rating > 0 && (
+                    <Badge className="absolute bottom-3 left-3 bg-white/90 text-foreground border-0 backdrop-blur-sm">
+                      <Star className="size-3 mr-1 fill-terracotta-500 text-terracotta-500" />
+                      {place.rating}
+                    </Badge>
+                  )}
+                </div>
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-2">
+                    <MapPin className="size-3.5" />
+                    <span>{place.region}</span>
+                  </div>
+                  <h3 className="font-semibold text-lg text-foreground mb-2">{place.name}</h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{place.shortDescription || place.description?.substring(0, 100)}</p>
+                  <div className="flex items-center justify-between">
+                    <Button asChild variant="ghost" className="p-0 h-auto text-primary hover:text-primary/80">
+                      <Link to={`/place/${place._id}`}>View Details</Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
                       onClick={() => handleRemove(place._id)}
-                      className="text-red-500 text-sm font-medium hover:text-red-700"
                     >
                       Remove
-                    </button>
+                    </Button>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}

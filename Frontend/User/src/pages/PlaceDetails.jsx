@@ -2,7 +2,26 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  MapPin,
+  Star,
+  Clock,
+  Heart,
+  ArrowLeft,
+  Navigation,
+  Phone,
+  Mail,
+  Globe,
+  Ticket,
+  Share2,
+  ChevronRight,
+} from "lucide-react";
 
 const PlaceDetails = () => {
   const { id } = useParams();
@@ -51,172 +70,322 @@ const PlaceDetails = () => {
 
   if (loading) {
     return (
-      <div className="p-6 text-center text-gray-500">Loading place...</div>
+      <div className="min-h-screen bg-sand-50">
+        <div className="animate-pulse">
+          <div className="h-96 bg-muted w-full" />
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+            <div className="h-8 bg-muted rounded w-1/3 mb-4" />
+            <div className="h-4 bg-muted rounded w-2/3 mb-2" />
+            <div className="h-4 bg-muted rounded w-1/2" />
+          </div>
+        </div>
+      </div>
     );
   }
 
   if (error) {
-    return <div className="p-6 text-center text-red-600">{error}</div>;
+    return (
+      <div className="min-h-screen bg-sand-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive text-lg mb-4">{error}</p>
+          <Button asChild variant="outline">
+            <Link to="/">Back to Home</Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (!place) {
-    return <div className="p-6 text-center text-gray-500">Place not found</div>;
+    return (
+      <div className="min-h-screen bg-sand-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground text-lg mb-4">Place not found</p>
+          <Button asChild variant="outline">
+            <Link to="/">Back to Home</Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto bg-white rounded-lg shadow-md">
-      <Link to="/" className="text-blue-600 hover:underline mb-4 inline-block">
-        ← Back to Home
-      </Link>
-
-      <h1 className="text-3xl md:text-4xl font-bold mb-2 text-gray-800">
-        {place.name}
-      </h1>
-
-      <img
-        src={place.image}
-        alt={place.name}
-        className="w-full h-auto rounded-lg mb-4 object-cover shadow-sm max-h-96"
-      />
-
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-          {place.region}
-        </span>
-        <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-          {place.category}
-        </span>
-        {place.featured && (
-          <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
-            Featured
-          </span>
-        )}
-        <button
-          onClick={handleWishlist}
-          disabled={wishLoading}
-          className={`ml-auto px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-            isWishlisted
-              ? "bg-red-100 text-red-700 hover:bg-red-200"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-        >
-          {isWishlisted ? "♥ Wishlisted" : "♡ Add to Wishlist"}
-        </button>
+    <div className="min-h-screen bg-sand-50">
+      {/* Hero Image */}
+      <div className="relative h-[50vh] min-h-[400px]">
+        <img
+          src={place.image}
+          alt={place.name}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+        <div className="absolute top-4 left-4">
+          <Button asChild variant="ghost" className="text-white hover:text-white hover:bg-white/20 bg-black/30 backdrop-blur-sm">
+            <Link to="/">
+              <ArrowLeft className="size-4 mr-2" />
+              Back
+            </Link>
+          </Button>
+        </div>
+        <div className="absolute top-4 right-4 flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white hover:text-white hover:bg-white/20 bg-black/30 backdrop-blur-sm"
+            onClick={handleWishlist}
+            disabled={wishLoading}
+          >
+            <Heart className={`size-5 ${isWishlisted ? "fill-terracotta-500 text-terracotta-500" : ""}`} />
+          </Button>
+          <Button variant="ghost" size="icon" className="text-white hover:text-white hover:bg-white/20 bg-black/30 backdrop-blur-sm">
+            <Share2 className="size-5" />
+          </Button>
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex flex-wrap gap-2 mb-3">
+              <Badge className="bg-primary text-white border-0">{place.region}</Badge>
+              <Badge className="bg-white/20 text-white border-0 backdrop-blur-sm">{place.category}</Badge>
+              {place.featured && (
+                <Badge className="bg-terracotta-500 text-white border-0">Featured</Badge>
+              )}
+            </div>
+            <h1 className="font-heading text-4xl sm:text-5xl font-bold text-white mb-2">{place.name}</h1>
+            {place.rating > 0 && (
+              <div className="flex items-center gap-2 text-white/90">
+                <Star className="size-5 fill-terracotta-400 text-terracotta-400" />
+                <span className="font-semibold">{place.rating}</span>
+                {place.totalReviews > 0 && (
+                  <span className="text-white/70">({place.totalReviews} reviews)</span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {place.rating > 0 && (
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-yellow-500 text-lg">★</span>
-          <span className="font-semibold text-gray-800">{place.rating}</span>
-          {place.totalReviews > 0 && (
-            <span className="text-gray-500 text-sm">({place.totalReviews} reviews)</span>
-          )}
-        </div>
-      )}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="w-full justify-start bg-white border mb-8 h-auto p-1">
+            <TabsTrigger value="overview" className="flex-1 sm:flex-none">Overview</TabsTrigger>
+            <TabsTrigger value="gallery" className="flex-1 sm:flex-none">Gallery</TabsTrigger>
+            <TabsTrigger value="info" className="flex-1 sm:flex-none">Information</TabsTrigger>
+            <TabsTrigger value="location" className="flex-1 sm:flex-none">Location</TabsTrigger>
+          </TabsList>
 
-      {place.shortDescription && (
-        <p className="text-gray-600 mb-3 italic">{place.shortDescription}</p>
-      )}
+          <TabsContent value="overview" className="mt-0">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                <Card>
+                  <CardContent className="p-6">
+                    {place.shortDescription && (
+                      <p className="text-lg text-muted-foreground italic mb-4">{place.shortDescription}</p>
+                    )}
+                    <p className="text-foreground leading-relaxed whitespace-pre-line">{place.description}</p>
+                  </CardContent>
+                </Card>
 
-      <p className="mb-4 text-gray-700 whitespace-pre-line leading-relaxed">
-        {place.description}
-      </p>
+                {place.bestTime && (
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Clock className="size-5 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-foreground">Best Time to Visit</h3>
+                          <p className="text-sm text-muted-foreground">{place.bestTime}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-      {place.bestTime && (
-        <div className="mb-3 p-3 bg-blue-50 rounded-lg">
-          <span className="font-bold text-blue-800">Best time to visit: </span>
-          <span className="text-blue-700">{place.bestTime}</span>
-        </div>
-      )}
+                {place.facilities?.length > 0 && (
+                  <Card>
+                    <CardContent className="p-6">
+                      <h3 className="font-semibold text-foreground mb-3">Facilities</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {place.facilities.map((facility, i) => (
+                          <Badge key={i} variant="secondary">{facility}</Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
 
-      {place.address && (
-        <p className="mb-2 text-gray-600">
-          <span className="font-semibold">Address:</span> {place.address}
-        </p>
-      )}
+              <div className="space-y-4">
+                <Card className="sticky top-24">
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold text-foreground mb-4">Quick Info</h3>
+                    <div className="space-y-3">
+                      {place.region && (
+                        <div className="flex items-center gap-3 text-sm">
+                          <MapPin className="size-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Region:</span>
+                          <span className="font-medium text-foreground ml-auto">{place.region}</span>
+                        </div>
+                      )}
+                      {place.category && (
+                        <div className="flex items-center gap-3 text-sm">
+                          <Star className="size-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Category:</span>
+                          <span className="font-medium text-foreground ml-auto">{place.category}</span>
+                        </div>
+                      )}
+                      {place.bestTime && (
+                        <div className="flex items-center gap-3 text-sm">
+                          <Clock className="size-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Best Time:</span>
+                          <span className="font-medium text-foreground ml-auto">{place.bestTime}</span>
+                        </div>
+                      )}
+                    </div>
 
-      {/* Entry Fee */}
-      {place.entryFee && (place.entryFee.pakistani > 0 || place.entryFee.foreigner > 0) && (
-        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-          <h3 className="font-semibold text-gray-800 mb-2">Entry Fee</h3>
-          <div className="flex gap-4">
-            {place.entryFee.pakistani > 0 && (
-              <span className="text-gray-700">Pakistani: PKR {place.entryFee.pakistani.toLocaleString()}</span>
-            )}
-            {place.entryFee.foreigner > 0 && (
-              <span className="text-gray-700">Foreigner: PKR {place.entryFee.foreigner.toLocaleString()}</span>
-            )}
-          </div>
-        </div>
-      )}
+                    <Separator className="my-4" />
 
-      {/* Facilities */}
-      {place.facilities?.length > 0 && (
-        <div className="mb-4">
-          <h3 className="font-semibold text-gray-800 mb-2">Facilities</h3>
-          <div className="flex flex-wrap gap-2">
-            {place.facilities.map((facility, i) => (
-              <span key={i} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
-                {facility}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+                    {place.entryFee && (place.entryFee.pakistani > 0 || place.entryFee.foreigner > 0) && (
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Ticket className="size-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-foreground">Entry Fee</span>
+                        </div>
+                        <div className="space-y-1 text-sm">
+                          {place.entryFee.pakistani > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Pakistani</span>
+                              <span className="font-medium">PKR {place.entryFee.pakistani.toLocaleString()}</span>
+                            </div>
+                          )}
+                          {place.entryFee.foreigner > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Foreigner</span>
+                              <span className="font-medium">PKR {place.entryFee.foreigner.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
-      {/* Contact */}
-      {place.contactInfo && (place.contactInfo.phone || place.contactInfo.email || place.contactInfo.website) && (
-        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-          <h3 className="font-semibold text-gray-800 mb-2">Contact Information</h3>
-          <div className="space-y-1 text-gray-700">
-            {place.contactInfo.phone && <p>Phone: {place.contactInfo.phone}</p>}
-            {place.contactInfo.email && <p>Email: {place.contactInfo.email}</p>}
-            {place.contactInfo.website && (
-              <p>
-                Website:{" "}
-                <a href={place.contactInfo.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                  {place.contactInfo.website}
-                </a>
-              </p>
-            )}
-          </div>
-        </div>
-      )}
+                    <Button asChild className="w-full bg-primary hover:bg-primary/90">
+                      <Link to="/booking">
+                        Book a Tour
+                        <ChevronRight className="size-4 ml-2" />
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
 
-      {/* Maps */}
-      <div className="mt-4">
-        {place.googleMapsUrl ? (
-          <a
-            href={place.googleMapsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
-          >
-            Open in Google Maps
-          </a>
-        ) : (
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
-          >
-            View on Google Maps
-          </a>
-        )}
+          <TabsContent value="gallery" className="mt-0">
+            <Card>
+              <CardContent className="p-6">
+                {place.gallery?.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {place.gallery.map((img, i) => (
+                      <div key={i} className="relative aspect-video rounded-lg overflow-hidden group">
+                        <img
+                          src={img.url}
+                          alt={img.alt || `${place.name} ${i + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">No additional photos available.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="info" className="mt-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {place.address && (
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <MapPin className="size-5 text-primary" />
+                      </div>
+                      <h3 className="font-semibold text-foreground">Address</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{place.address}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {place.contactInfo && (place.contactInfo.phone || place.contactInfo.email || place.contactInfo.website) && (
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold text-foreground mb-3">Contact Information</h3>
+                    <div className="space-y-3">
+                      {place.contactInfo.phone && (
+                        <div className="flex items-center gap-3 text-sm">
+                          <Phone className="size-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">{place.contactInfo.phone}</span>
+                        </div>
+                      )}
+                      {place.contactInfo.email && (
+                        <div className="flex items-center gap-3 text-sm">
+                          <Mail className="size-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">{place.contactInfo.email}</span>
+                        </div>
+                      )}
+                      {place.contactInfo.website && (
+                        <div className="flex items-center gap-3 text-sm">
+                          <Globe className="size-4 text-muted-foreground" />
+                          <a href={place.contactInfo.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                            Visit Website
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="location" className="mt-0">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-foreground">Location</h3>
+                  <Button asChild variant="outline" size="sm">
+                    <a
+                      href={place.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Navigation className="size-4 mr-2" />
+                      Open in Google Maps
+                    </a>
+                  </Button>
+                </div>
+                {place.lat && place.lng && (
+                  <div className="rounded-lg overflow-hidden border">
+                    <iframe
+                      title={`Map of ${place.name}`}
+                      width="100%"
+                      height="400"
+                      frameBorder="0"
+                      scrolling="no"
+                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${place.lng - 0.05}%2C${place.lat - 0.05}%2C${place.lng + 0.05}%2C${place.lat + 0.05}&layer=mapnik&marker=${place.lat}%2C${place.lng}`}
+                      className="w-full"
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
-
-      {/* Gallery */}
-      {place.gallery?.length > 0 && (
-        <div className="mt-6">
-          <h3 className="font-semibold text-gray-800 mb-3">Gallery</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {place.gallery.map((img, i) => (
-              <img key={i} src={img.url} alt={img.alt || `${place.name} ${i + 1}`} className="w-full h-32 object-cover rounded-lg" />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

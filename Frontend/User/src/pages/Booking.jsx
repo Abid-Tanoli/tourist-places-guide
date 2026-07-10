@@ -1,12 +1,39 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  CheckCircle,
+  CreditCard,
+  Smartphone,
+  Banknote,
+  Loader2,
+} from "lucide-react";
 
 const getApiError = (error, fallback) => {
   const apiErrors = error.response?.data?.errors;
   if (apiErrors?.length) return apiErrors[0].message;
   return error.response?.data?.message || fallback;
+};
+
+const getTourPrice = (tour) => {
+  const price = Number(tour?.price || 0);
+  const discount = Number(tour?.discount || 0);
+  return discount > 0 ? Math.round(price * (1 - discount / 100)) : price;
 };
 
 const Booking = () => {
@@ -148,227 +175,260 @@ const Booking = () => {
   };
 
   const selectedTourDetails = tours.find((tour) => tour._id === selectedTour);
-  const totalPrice = selectedTourDetails
-    ? (userType === "foreigner" ? selectedTourDetails.foreignerPrice : selectedTourDetails.pakistaniPrice) * adults
-    : 0;
+  const adultCount = Number(adults || 0);
+  const guestLabel = `${adultCount} adult${adultCount === 1 ? "" : "s"}`;
+  const totalPrice = selectedTourDetails ? getTourPrice(selectedTourDetails) * adultCount : 0;
 
   return (
-    <div className="p-6 max-w-2xl mx-auto bg-white rounded-lg shadow-md">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800 text-center">
-        Book Your Tour
-      </h1>
-
-      {loading && <div className="mb-4 text-gray-600 font-medium">Loading tours...</div>}
-      {error && <div className="mb-4 text-red-600 font-medium">{error}</div>}
-
-      {createdBooking ? (
-        <div className="space-y-6">
-          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-            <h3 className="font-semibold text-green-800">Booking Created Successfully!</h3>
-            <p className="text-sm text-green-700 mt-1">
-              Tour: {createdBooking.tour?.name || createdBooking.selectedTour} | Total: PKR {totalPrice.toLocaleString()}
-            </p>
-          </div>
-
-          <div>
-            <h3 className="font-semibold text-gray-800 mb-3">Select Payment Method</h3>
-            <div className="space-y-3">
-              {[
-                { id: "cod", label: "Cash on Delivery", desc: "Pay when you arrive" },
-                { id: "stripe", label: "Credit/Debit Card", desc: "Pay securely online (Stripe)" },
-                { id: "easypaisa", label: "EasyPaisa", desc: "Mobile wallet payment" },
-                { id: "jazzcash", label: "JazzCash", desc: "Mobile wallet payment" },
-              ].map((method) => (
-                <label
-                  key={method.id}
-                  className={`flex items-center p-3 border rounded-lg cursor-pointer transition ${
-                    paymentMethod === method.id ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value={method.id}
-                    checked={paymentMethod === method.id}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="mr-3"
-                  />
-                  <div>
-                    <p className="font-medium text-gray-800">{method.label}</p>
-                    <p className="text-sm text-gray-500">{method.desc}</p>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => setCreatedBooking(null)}
-              className="flex-1 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition font-medium"
-            >
-              Edit Booking
-            </button>
-            <button
-              onClick={handlePayment}
-              disabled={processingPayment}
-              className="flex-1 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition disabled:bg-gray-400 font-semibold"
-            >
-              {processingPayment ? "Processing..." : paymentMethod === "cod" ? "Confirm Booking" : `Pay PKR ${totalPrice.toLocaleString()}`}
-            </button>
-          </div>
+    <div className="min-h-screen bg-sand-50">
+      <div className="bg-primary text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <h1 className="font-heading text-4xl sm:text-5xl font-bold mb-3">Book Your Tour</h1>
+          <p className="text-white/80 text-lg">Complete the form below to reserve your spot</p>
         </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">Select Tour *</label>
-            <select
-              value={selectedTour}
-              onChange={(e) => setSelectedTour(e.target.value)}
-              disabled={loading || tours.length === 0}
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">-- Choose a Tour --</option>
-              {tours.map((tour) => (
-                <option key={tour._id} value={tour._id}>
-                  {tour.name} ({tour.days} days) - PKR {tour.price?.toLocaleString()}
-                </option>
-              ))}
-            </select>
-          </div>
+      </div>
 
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">Visitor Type *</label>
-            <select
-              value={userType}
-              onChange={(e) => setUserType(e.target.value)}
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">-- Select Type --</option>
-              <option value="pakistani">Pakistani</option>
-              <option value="foreigner">Foreigner</option>
-            </select>
-          </div>
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+        {loading && (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <Loader2 className="size-6 animate-spin text-primary mx-auto mb-2" />
+              <p className="text-muted-foreground">Loading tours...</p>
+            </CardContent>
+          </Card>
+        )}
 
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">Full Name *</label>
-            <input
-              type="text"
-              placeholder="Enter your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
+        {error && (
+          <Card className="border-destructive">
+            <CardContent className="p-4 text-destructive text-center">{error}</CardContent>
+          </Card>
+        )}
 
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">Email *</label>
-            <input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
+        {createdBooking ? (
+          <div className="space-y-6">
+            <Card className="border-green-200 bg-green-50">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="size-6 text-green-600" />
+                  <div>
+                    <h3 className="font-semibold text-green-800">Booking Created Successfully!</h3>
+                    <p className="text-sm text-green-700 mt-1">
+                      Tour: {createdBooking.tour?.name || createdBooking.selectedTour} | Total: PKR {totalPrice.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">Mobile Number *</label>
-            <input
-              type="tel"
-              placeholder="03xx-xxxxxxx"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Select Payment Method</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[
+                  { id: "cod", label: "Cash on Arrival", desc: "Pay when you arrive at the destination", icon: Banknote },
+                  { id: "stripe", label: "Credit/Debit Card", desc: "Pay securely online via Stripe", icon: CreditCard },
+                  { id: "easypaisa", label: "EasyPaisa", desc: "Mobile wallet payment", icon: Smartphone },
+                  { id: "jazzcash", label: "JazzCash", desc: "Mobile wallet payment", icon: Smartphone },
+                ].map((method) => (
+                  <button
+                    key={method.id}
+                    onClick={() => setPaymentMethod(method.id)}
+                    className={`w-full flex items-center gap-4 p-4 rounded-lg border-2 transition-all text-left ${
+                      paymentMethod === method.id
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-border/80"
+                    }`}
+                  >
+                    <div className={`size-10 rounded-lg flex items-center justify-center ${
+                      paymentMethod === method.id ? "bg-primary text-white" : "bg-muted"
+                    }`}>
+                      <method.icon className="size-5" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">{method.label}</p>
+                      <p className="text-sm text-muted-foreground">{method.desc}</p>
+                    </div>
+                    <div className={`size-5 rounded-full border-2 flex items-center justify-center ${
+                      paymentMethod === method.id ? "border-primary" : "border-border"
+                    }`}>
+                      {paymentMethod === method.id && (
+                        <div className="size-2.5 rounded-full bg-primary" />
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </CardContent>
+            </Card>
 
-          {userType === "pakistani" && (
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">CNIC *</label>
-              <input
-                type="text"
-                placeholder="12345-1234567-1"
-                value={cnic}
-                onChange={(e) => setCnic(e.target.value)}
-                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-          )}
-
-          {userType === "foreigner" && (
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">Passport Number *</label>
-              <input
-                type="text"
-                placeholder="Enter your Passport No"
-                value={passport}
-                onChange={(e) => setPassport(e.target.value)}
-                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">Adults *</label>
-              <input
-                type="number"
-                min="1"
-                value={adults}
-                onChange={(e) => setAdults(e.target.value)}
-                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block font-medium text-gray-700 mb-1">Children</label>
-              <input
-                type="number"
-                min="0"
-                value={children}
-                onChange={(e) => setChildren(e.target.value)}
-                className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setCreatedBooking(null)}>
+                Edit Booking
+              </Button>
+              <Button
+                className="flex-1 bg-primary hover:bg-primary/90"
+                onClick={handlePayment}
+                disabled={processingPayment}
+              >
+                {processingPayment ? (
+                  <><Loader2 className="size-4 mr-2 animate-spin" /> Processing...</>
+                ) : paymentMethod === "cod" ? (
+                  "Confirm Booking"
+                ) : (
+                  `Pay PKR ${totalPrice.toLocaleString()}`
+                )}
+              </Button>
             </div>
           </div>
+        ) : (
+          <Card>
+            <CardContent className="p-6">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <Label>Select Tour *</Label>
+                  <Select value={selectedTour} onValueChange={setSelectedTour} disabled={loading || tours.length === 0}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a tour package" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tours.map((tour) => (
+                        <SelectItem key={tour._id} value={tour._id}>
+                          {tour.name} ({tour.days} days) - PKR {tour.price?.toLocaleString()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">Notes</label>
-            <textarea
-              placeholder="Any special requirements or notes..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+                <div className="space-y-2">
+                  <Label>Visitor Type *</Label>
+                  <Select value={userType} onValueChange={setUserType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select visitor type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pakistani">Pakistani</SelectItem>
+                      <SelectItem value="foreigner">Foreigner</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          {selectedTour && totalPrice > 0 && (
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600">
-                Total: <span className="font-bold text-gray-900">PKR {totalPrice.toLocaleString()}</span>
-                {userType && ` (${userType === "foreigner" ? "Foreigner" : "Pakistani"} rate × ${adults} adult${adults > 1 ? "s" : ""})`}
-              </p>
-            </div>
-          )}
+                <div className="space-y-2">
+                  <Label>Full Name *</Label>
+                  <Input
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
 
-          <button
-            type="submit"
-            disabled={submitting || loading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold"
-          >
-            {submitting ? "Creating Booking..." : "Create Booking & Pay"}
-          </button>
-        </form>
-      )}
+                <div className="space-y-2">
+                  <Label>Email *</Label>
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Mobile Number *</Label>
+                  <Input
+                    type="tel"
+                    placeholder="03xx-xxxxxxx"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {userType === "pakistani" && (
+                  <div className="space-y-2">
+                    <Label>CNIC *</Label>
+                    <Input
+                      type="text"
+                      placeholder="12345-1234567-1"
+                      value={cnic}
+                      onChange={(e) => setCnic(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
+
+                {userType === "foreigner" && (
+                  <div className="space-y-2">
+                    <Label>Passport Number *</Label>
+                    <Input
+                      type="text"
+                      placeholder="Enter passport number"
+                      value={passport}
+                      onChange={(e) => setPassport(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Adults *</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={adults}
+                      onChange={(e) => setAdults(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Children</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={children}
+                      onChange={(e) => setChildren(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Notes</Label>
+                  <Textarea
+                    placeholder="Any special requirements or notes..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                {selectedTour && totalPrice > 0 && (
+                  <div className="p-4 bg-primary/5 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      Total: <span className="font-bold text-foreground text-lg">PKR {totalPrice.toLocaleString()}</span>
+                      {userType && ` (${userType === "foreigner" ? "Foreigner visitor" : "Pakistani visitor"}, ${guestLabel})`}
+                    </p>
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={submitting || loading}
+                  className="w-full bg-primary hover:bg-primary/90 h-11"
+                >
+                  {submitting ? (
+                    <><Loader2 className="size-4 mr-2 animate-spin" /> Creating Booking...</>
+                  ) : (
+                    "Create Booking & Pay"
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };
