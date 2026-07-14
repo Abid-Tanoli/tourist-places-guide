@@ -1,11 +1,15 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { toast } from "sonner";
 import api from "../api/axios";
 import TourMap from "../components/TourMap";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
@@ -23,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Accordion,
   AccordionContent,
@@ -37,14 +42,24 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   CalendarDays,
   CheckCircle2,
   Clock,
+  Eye,
   Info,
+  ListChecks,
+  Loader2,
   MapPin,
+  MessageSquare,
   Route,
   Search,
   SlidersHorizontal,
+  Star,
   Users,
   X,
   XCircle,
@@ -82,6 +97,390 @@ const groupRouteByDay = (tour) => {
       grouped.get(day).push(stop);
     });
   return [...grouped.entries()];
+};
+
+const TourDetailsDialog = ({ tour, onClose }) => {
+  const { user, isAuthenticated } = useAuth();
+  const [activeTab, setActiveTab] = useState("overview");
+  const [reviews, setReviews] = useState([]);
+  const [reviewStats, setReviewStats] = useState({ avgRating: 0, totalReviews: 0 });
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ name: "", email: "", rating: 5, title: "", comment: "" });
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  const fetchTourReviews = useCallback(async (tourId) => {
+    setReviewLoading(true);
+    try {
+      const { data } = await api.get(`/reviews/tour/${tourId}`);
+      setReviews(data.reviews || []);
+      setReviewStats(data.stats || { avgRating: 0, totalReviews: 0 });
+    } catch {
+      // Non-critical
+    } finally {
+      setReviewLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tour?._id) fetchTourReviews(tour._id);
+  }, [tour?._id, fetchTourReviews]);
+
+  useEffect(() => {
+    if (user) {
+      setReviewForm((prev) => ({ ...prev, name: user.name || "", email: user.email || "" }));
+    }
+  }, [user]);
+
+  if (!tour) return null;
+
+  const gallery = getGalleryImages(tour);
+  const routePlaces = getRoutePlaces(tour);
+  const routeDays = groupRouteByDay(tour);
+  const salePrice = getDiscountedPrice(tour);
+  const hasDiscount = Number(tour.discount || 0) > 0;
+
+  const nextDeparture = (tour.departures || [])
+    .filter((d) => d.status === "active" && d.capacity - d.bookedSeats > 0)
+    .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+
+  const seatsDisplay = nextDeparture
+    ? `${nextDeparture.capacity - nextDeparture.bookedSeats} of ${nextDeparture.capacity}`
+    : "Select at booking";
+
+  const departureLabel = nextDeparture
+    ? new Date(nextDeparture.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null;
+
+  const handleClose = (open) => {
+    if (!open) {
+      setActiveTab("overview");
+      onClose();
+    }
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!reviewForm.name.trim() || !reviewForm.comment.trim()) {
+      toast.error("Name and comment are required.");
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      await api.post("/reviews", { ...reviewForm, tour: tour._id });
+      toast.success("Review submitted! It will appear after moderation.");
+      setReviewForm((prev) => ({ ...prev, rating: 5, title: "", comment: "" }));
+      fetchTourReviews(tour._id);
+    } catch (requestError) {
+      toast.error(requestError.response?.data?.message || "Failed to submit review.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  return (
+    <Dialog open={Boolean(tour)} onOpenChange={handleClose}>
+      <DialogContent className="max-h-[95vh] max-w-6xl overflow-y-auto p-0 sm:max-h-[92vh]">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{tour.name}</DialogTitle>
+          <DialogDescription>{tour.shortDescription || tour.description}</DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col lg:grid lg:grid-cols-[1fr_380px]">
+          <div className="min-w-0 overflow-hidden">
+            <Carousel className="relative">
+              <CarouselContent>
+                {gallery.map((image, index) => (
+                  <CarouselItem key={`${image}-${index}`}>
+                    <div className="relative h-52 sm:h-72 md:h-80">
+                      <img src={image} alt={`${tour.name} ${index + 1}`} className="h-full w-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                      <div className="absolute bottom-4 left-4 right-4 text-white sm:bottom-6 sm:left-6 sm:right-6">
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          {tour.featured && <Badge className="border-0 bg-primary text-white">Featured</Badge>}
+                          {hasDiscount && <Badge className="border-0 bg-terracotta-500 text-white">{tour.discount}% off</Badge>}
+                          <Badge className="border-0 bg-white/20 text-white backdrop-blur-sm">{tour.location || "Pakistan"}</Badge>
+                        </div>
+                        <h2 className="font-heading text-2xl font-bold sm:text-3xl md:text-4xl">{tour.name}</h2>
+                      </div>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              {gallery.length > 1 && (
+                <>
+                  <CarouselPrevious className="left-2 size-9 sm:left-4 sm:size-10" />
+                  <CarouselNext className="right-2 size-9 sm:right-4 sm:size-10" />
+                </>
+              )}
+            </Carousel>
+
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <div className="sticky top-0 z-10 border-b bg-white px-4 sm:px-6">
+                <TabsList className="w-full justify-start gap-1 rounded-none border-0 bg-transparent p-0 h-auto">
+                  <TabsTrigger value="overview" className="rounded-none border-b-2 border-transparent px-3 py-3 text-sm font-medium data-[state=active]:border-primary data-[state=active]:shadow-none sm:text-base">
+                    <Info className="mr-1.5 size-4" /> Overview
+                  </TabsTrigger>
+                  <TabsTrigger value="itinerary" className="rounded-none border-b-2 border-transparent px-3 py-3 text-sm font-medium data-[state=active]:border-primary data-[state=active]:shadow-none sm:text-base">
+                    <Route className="mr-1.5 size-4" /> Itinerary
+                  </TabsTrigger>
+                  <TabsTrigger value="details" className="rounded-none border-b-2 border-transparent px-3 py-3 text-sm font-medium data-[state=active]:border-primary data-[state=active]:shadow-none sm:text-base">
+                    <ListChecks className="mr-1.5 size-4" /> Included
+                  </TabsTrigger>
+                  {routePlaces.length > 0 && (
+                    <TabsTrigger value="map" className="rounded-none border-b-2 border-transparent px-3 py-3 text-sm font-medium data-[state=active]:border-primary data-[state=active]:shadow-none sm:text-base">
+                      <MapPin className="mr-1.5 size-4" /> Map
+                    </TabsTrigger>
+                  )}
+                  <TabsTrigger value="reviews" className="rounded-none border-b-2 border-transparent px-3 py-3 text-sm font-medium data-[state=active]:border-primary data-[state=active]:shadow-none sm:text-base">
+                    <MessageSquare className="mr-1.5 size-4" /> Reviews ({reviewStats.totalReviews || reviews.length || 0})
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <div className="p-5 sm:p-6 md:p-8">
+                <TabsContent value="overview" className="mt-0 space-y-6">
+                  <p className="text-base leading-relaxed text-muted-foreground">
+                    {tour.shortDescription || tour.description}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+                    <div className="rounded-xl border bg-sand-50 p-3.5 sm:p-4">
+                      <Clock className="mb-2 size-5 text-primary" />
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Duration</p>
+                      <p className="mt-1 text-base font-semibold text-foreground">{tour.days} days</p>
+                    </div>
+                    <div className="rounded-xl border bg-sand-50 p-3.5 sm:p-4">
+                      <Route className="mb-2 size-5 text-primary" />
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Route</p>
+                      <p className="mt-1 text-base font-semibold text-foreground">{tour.route?.length || 0} stops</p>
+                    </div>
+                    <div className="rounded-xl border bg-sand-50 p-3.5 sm:p-4">
+                      <Users className="mb-2 size-5 text-primary" />
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Next Departure</p>
+                      <p className="mt-1 text-base font-semibold text-foreground">{departureLabel || "TBA"}</p>
+                    </div>
+                    <div className="rounded-xl border bg-sand-50 p-3.5 sm:p-4">
+                      <CalendarDays className="mb-2 size-5 text-primary" />
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Seats Left</p>
+                      <p className="mt-1 text-base font-semibold text-foreground">{seatsDisplay}</p>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="itinerary" className="mt-0">
+                  {routeDays.length > 0 ? (
+                    <Accordion type="single" collapsible defaultValue={`day-${routeDays[0][0]}`} className="rounded-xl border">
+                      {routeDays.map(([day, stops]) => (
+                        <AccordionItem key={day} value={`day-${day}`} className="px-4 sm:px-5">
+                          <AccordionTrigger className="py-4 text-base font-medium">
+                            <span>Day {day}: <span className="ml-1 text-muted-foreground">{stops.map((stop) => stop.place?.name).filter(Boolean).join(" → ")}</span></span>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="space-y-4 pb-4">
+                              {stops.map((stop, index) => (
+                                <div key={`${day}-${index}`} className="flex gap-3">
+                                  <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                                    {index + 1}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-base font-medium text-foreground">{stop.place?.name || `Stop ${index + 1}`}</p>
+                                    <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+                                      {stop.description || stop.place?.region || "Guided sightseeing and transfer time included."}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  ) : (
+                    <p className="py-8 text-center text-muted-foreground">Detailed itinerary will be shared upon booking.</p>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="details" className="mt-0">
+                  <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
+                    <div className="rounded-xl border bg-sand-50 p-5 sm:p-6">
+                      <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
+                        <CheckCircle2 className="size-5 text-primary" /> Included in Package
+                      </h3>
+                      <ul className="space-y-2.5">
+                        {(tour.included || []).map((item) => (
+                          <li key={item} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" /> {item}
+                          </li>
+                        ))}
+                        {(!tour.included || tour.included.length === 0) && (
+                          <li className="text-sm text-muted-foreground/60">No items listed</li>
+                        )}
+                      </ul>
+                    </div>
+                    <div className="rounded-xl border bg-sand-50 p-5 sm:p-6">
+                      <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
+                        <XCircle className="size-5 text-terracotta-500" /> Not Included
+                      </h3>
+                      <ul className="space-y-2.5">
+                        {(tour.excluded || []).map((item) => (
+                          <li key={item} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                            <XCircle className="mt-0.5 size-4 shrink-0 text-terracotta-500" /> {item}
+                          </li>
+                        ))}
+                        {(!tour.excluded || tour.excluded.length === 0) && (
+                          <li className="text-sm text-muted-foreground/60">No exclusions listed</li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {routePlaces.length > 0 && (
+                  <TabsContent value="map" className="mt-0">
+                    <div className="overflow-hidden rounded-xl border">
+                      <TourMap route={routePlaces} tourRoute={tour.route} />
+                    </div>
+                  </TabsContent>
+                )}
+
+                <TabsContent value="reviews" className="mt-0">
+                  <div className="space-y-5">
+                    {reviewStats.totalReviews > 0 && (
+                      <div className="flex items-center gap-4 rounded-xl border bg-sand-50 p-4">
+                        <div className="text-center">
+                          <p className="text-3xl font-bold text-primary">{reviewStats.avgRating}</p>
+                          <div className="flex gap-0.5 mt-1">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star key={i} className={`size-3.5 ${i < Math.round(reviewStats.avgRating) ? "fill-terracotta-400 text-terracotta-400" : "text-gray-300"}`} />
+                            ))}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">{reviewStats.totalReviews} reviews</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {reviews.length > 0 ? (
+                      <div className="space-y-3">
+                        {reviews.map((review) => (
+                          <div key={review._id} className="rounded-xl border p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                                {(review.name || "A").charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm text-foreground">{review.name}</p>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex gap-0.5">
+                                    {Array.from({ length: 5 }).map((_, i) => (
+                                      <Star key={i} className={`size-3 ${i < review.rating ? "fill-terracotta-400 text-terracotta-400" : "text-gray-300"}`} />
+                                    ))}
+                                  </div>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(review.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            {review.title && <p className="font-medium text-sm text-foreground mt-2">{review.title}</p>}
+                            <p className="text-sm text-muted-foreground mt-1">{review.comment}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : !reviewLoading ? (
+                      <div className="rounded-xl border p-6 text-center">
+                        <MessageSquare className="size-6 text-muted-foreground/40 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No reviews yet. Be the first!</p>
+                      </div>
+                    ) : null}
+
+                    <div className="rounded-xl border p-5">
+                      <h3 className="font-medium text-foreground mb-3">Write a Review</h3>
+                      {!isAuthenticated ? (
+                        <p className="text-sm text-muted-foreground">
+                          <Link to="/login" className="text-primary hover:underline">Sign in</Link> to leave a review.
+                        </p>
+                      ) : (
+                        <form onSubmit={handleSubmitReview} className="space-y-3">
+                          <div>
+                            <Label className="text-sm">Your Rating *</Label>
+                            <div className="flex gap-1 mt-1">
+                              {[1, 2, 3, 4, 5].map((r) => (
+                                <button key={r} type="button" onClick={() => setReviewForm((prev) => ({ ...prev, rating: r }))} className="p-0.5">
+                                  <Star className={`size-5 ${r <= reviewForm.rating ? "fill-terracotta-400 text-terracotta-400" : "text-gray-300 hover:text-terracotta-200"}`} />
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-sm">Title (optional)</Label>
+                            <Input value={reviewForm.title} onChange={(e) => setReviewForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Summarize your experience" className="mt-1" />
+                          </div>
+                          <div>
+                            <Label className="text-sm">Your Review *</Label>
+                            <Textarea value={reviewForm.comment} onChange={(e) => setReviewForm((prev) => ({ ...prev, comment: e.target.value }))} placeholder="Tell others about your experience..." rows={3} className="mt-1" required />
+                          </div>
+                          <Button type="submit" disabled={submittingReview} size="sm" className="bg-primary hover:bg-primary/90">
+                            {submittingReview ? <><Loader2 className="size-3.5 mr-1.5 animate-spin" /> Submitting...</> : "Submit Review"}
+                          </Button>
+                        </form>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+              </div>
+            </Tabs>
+          </div>
+
+          <aside className="border-t bg-white p-5 sm:p-6 lg:border-l lg:border-t-0 lg:min-w-[380px]">
+            <div className="space-y-5 sm:sticky sm:top-4">
+              <div>
+                <p className="text-sm text-muted-foreground">From</p>
+                <div className="mt-1 flex flex-wrap items-end gap-2">
+                  <span className="text-3xl font-bold text-primary">{formatPKR(salePrice)}</span>
+                  {hasDiscount && <span className="pb-1 text-sm text-muted-foreground line-through">{formatPKR(tour.pakistaniPrice || tour.price)}</span>}
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  per person (Pakistani)
+                  {tour.foreignerPrice && (
+                    <span className="block mt-0.5">~${Math.round(tour.foreignerPrice / 280)} USD for international visitors</span>
+                  )}
+                </p>
+              </div>
+
+              <Separator />
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-lg bg-sand-50 p-3">
+                  <p className="text-xs text-muted-foreground">Duration</p>
+                  <p className="font-medium mt-0.5">{tour.days} days</p>
+                </div>
+                <div className="rounded-lg bg-sand-50 p-3">
+                  <p className="text-xs text-muted-foreground">Next departure</p>
+                  <p className="font-medium mt-0.5">{departureLabel || "TBA"}</p>
+                </div>
+                <div className="rounded-lg bg-sand-50 p-3">
+                  <p className="text-xs text-muted-foreground">Seats left</p>
+                  <p className={`font-medium mt-0.5 ${nextDeparture ? "text-primary" : "text-muted-foreground"}`}>{seatsDisplay}</p>
+                </div>
+                <div className="rounded-lg bg-sand-50 p-3">
+                  <p className="text-xs text-muted-foreground">Region</p>
+                  <p className="font-medium mt-0.5">{tour.location || "Pakistan"}</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-primary/5 p-4 text-sm text-muted-foreground">
+                <div className="mb-2 flex items-center gap-2 font-medium text-foreground"><Info className="size-4 text-primary" /> Booking note</div>
+                <p>Reserve now and our team will confirm schedule, pickup details, and payment status.</p>
+              </div>
+
+              <Button asChild className="w-full bg-terracotta-500 text-white hover:bg-terracotta-600" size="lg" onClick={onClose}>
+                <Link to={`/booking?tour=${tour._id || tour.id}`}>Book This Tour</Link>
+              </Button>
+            </div>
+          </aside>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 const Tours = () => {
@@ -213,181 +612,6 @@ const Tours = () => {
       </div>
     </div>
   );
-
-  const TourDetailsDialog = () => {
-    if (!detailTour) return null;
-
-    const gallery = getGalleryImages(detailTour);
-    const routePlaces = getRoutePlaces(detailTour);
-    const routeDays = groupRouteByDay(detailTour);
-    const salePrice = getDiscountedPrice(detailTour);
-    const hasDiscount = Number(detailTour.discount || 0) > 0;
-
-    return (
-      <Dialog open={Boolean(detailTour)} onOpenChange={(open) => !open && setDetailTour(null)}>
-        <DialogContent className="max-h-[95vh] max-w-6xl overflow-y-auto p-0 sm:max-h-[92vh]">
-          <DialogHeader className="sr-only">
-            <DialogTitle>{detailTour.name}</DialogTitle>
-            <DialogDescription>{detailTour.shortDescription || detailTour.description}</DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-col lg:grid lg:grid-cols-[1fr_340px]">
-            <div className="min-w-0">
-              <Carousel className="relative">
-                <CarouselContent>
-                  {gallery.map((image, index) => (
-                    <CarouselItem key={`${image}-${index}`}>
-                      <div className="relative h-56 sm:h-72 md:h-96">
-                        <img src={image} alt={`${detailTour.name} ${index + 1}`} className="h-full w-full object-cover" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                        <div className="absolute bottom-4 left-4 right-4 text-white sm:bottom-5 sm:left-5 sm:right-5">
-                          <div className="mb-2 flex flex-wrap gap-1.5 sm:mb-3 sm:gap-2">
-                            {detailTour.featured && <Badge className="border-0 bg-primary text-white">Featured</Badge>}
-                            {hasDiscount && <Badge className="border-0 bg-terracotta-500 text-white">{detailTour.discount}% off</Badge>}
-                            <Badge className="border-0 bg-white/20 text-white backdrop-blur-sm">{detailTour.location || "Pakistan"}</Badge>
-                          </div>
-                          <h2 className="font-heading text-2xl font-bold sm:text-3xl md:text-5xl">{detailTour.name}</h2>
-                        </div>
-                      </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                {gallery.length > 1 && (
-                  <>
-                    <CarouselPrevious className="left-2 size-8 sm:left-4 sm:size-10" />
-                    <CarouselNext className="right-2 size-8 sm:right-4 sm:size-10" />
-                  </>
-                )}
-              </Carousel>
-
-              <div className="space-y-6 p-4 sm:space-y-8 sm:p-6 md:p-8">
-                <div>
-                  <p className="text-sm leading-relaxed text-muted-foreground sm:text-base md:text-lg">
-                    {detailTour.shortDescription || detailTour.description}
-                  </p>
-                  <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3 md:grid-cols-4">
-                    <div className="rounded-lg border bg-white p-2.5 sm:p-3">
-                      <Clock className="mb-1.5 size-4 text-primary sm:mb-2" />
-                      <p className="text-xs text-muted-foreground">Duration</p>
-                      <p className="text-sm font-semibold sm:text-base">{detailTour.days} days</p>
-                    </div>
-                    <div className="rounded-lg border bg-white p-2.5 sm:p-3">
-                      <Route className="mb-1.5 size-4 text-primary sm:mb-2" />
-                      <p className="text-xs text-muted-foreground">Route</p>
-                      <p className="text-sm font-semibold sm:text-base">{detailTour.route?.length || 0} stops</p>
-                    </div>
-                    <div className="rounded-lg border bg-white p-2.5 sm:p-3">
-                      <Users className="mb-1.5 size-4 text-primary sm:mb-2" />
-                      <p className="text-xs text-muted-foreground">Seats</p>
-                      <p className="text-sm font-semibold sm:text-base">{detailTour.availableSeats ?? detailTour.capacity} left</p>
-                    </div>
-                    <div className="rounded-lg border bg-white p-2.5 sm:p-3">
-                      <CalendarDays className="mb-1.5 size-4 text-primary sm:mb-2" />
-                      <p className="text-xs text-muted-foreground">Capacity</p>
-                      <p className="text-sm font-semibold sm:text-base">{detailTour.capacity || 20} guests</p>
-                    </div>
-                  </div>
-                </div>
-
-                {routeDays.length > 0 && (
-                  <section>
-                    <h3 className="font-heading mb-3 text-xl font-bold sm:mb-4 sm:text-2xl">Day-by-Day Route</h3>
-                    <Accordion type="single" collapsible defaultValue={`day-${routeDays[0][0]}`} className="rounded-lg border bg-white px-3 sm:px-4">
-                      {routeDays.map(([day, stops]) => (
-                        <AccordionItem key={day} value={`day-${day}`}>
-                          <AccordionTrigger className="text-sm sm:text-base">Day {day}: <span className="truncate ml-1">{stops.map((stop) => stop.place?.name).filter(Boolean).join(" to ")}</span></AccordionTrigger>
-                          <AccordionContent>
-                            <div className="space-y-2.5 pt-1 sm:space-y-3">
-                              {stops.map((stop, index) => (
-                                <div key={`${day}-${index}`} className="flex gap-2.5 sm:gap-3">
-                                  <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground sm:mt-1 sm:size-7">
-                                    {index + 1}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p className="text-sm font-medium text-foreground sm:text-base">{stop.place?.name || `Stop ${index + 1}`}</p>
-                                    <p className="text-xs text-muted-foreground sm:text-sm">
-                                      {stop.description || stop.place?.region || "Guided sightseeing and transfer time included."}
-                                    </p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
-                  </section>
-                )}
-
-                <section className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
-                  <div className="rounded-lg border bg-white p-3.5 sm:p-5">
-                    <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold sm:mb-4 sm:text-base"><CheckCircle2 className="size-4 text-primary sm:size-5" /> Included</h3>
-                    <ul className="space-y-1.5 text-xs text-muted-foreground sm:space-y-2 sm:text-sm">
-                      {(detailTour.included || []).map((item) => (
-                        <li key={item} className="flex gap-1.5 sm:gap-2"><CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-primary sm:size-4" /> {item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="rounded-lg border bg-white p-3.5 sm:p-5">
-                    <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold sm:mb-4 sm:text-base"><XCircle className="size-4 text-terracotta-500 sm:size-5" /> Excluded</h3>
-                    <ul className="space-y-1.5 text-xs text-muted-foreground sm:space-y-2 sm:text-sm">
-                      {(detailTour.excluded || []).map((item) => (
-                        <li key={item} className="flex gap-1.5 sm:gap-2"><XCircle className="mt-0.5 size-3.5 shrink-0 text-terracotta-500 sm:size-4" /> {item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </section>
-
-                {routePlaces.length > 0 && (
-                  <section>
-                    <h3 className="font-heading mb-3 text-xl font-bold sm:mb-4 sm:text-2xl">Route Map</h3>
-                    <div className="overflow-hidden rounded-lg border bg-white">
-                      <TourMap route={routePlaces} tourRoute={detailTour.route} />
-                    </div>
-                  </section>
-                )}
-              </div>
-            </div>
-
-            <aside className="border-t bg-white p-4 sm:p-5 lg:border-l lg:border-t-0">
-              <div className="space-y-4 sm:sticky sm:top-4 sm:space-y-5">
-                <div>
-                  <p className="text-xs text-muted-foreground sm:text-sm">From</p>
-                  <div className="flex flex-wrap items-end gap-2">
-                    <span className="text-2xl font-bold text-primary sm:text-3xl">{formatPKR(salePrice)}</span>
-                    {hasDiscount && <span className="pb-0.5 text-xs text-muted-foreground line-through sm:pb-1 sm:text-sm">{formatPKR(detailTour.pakistaniPrice || detailTour.price)}</span>}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    per person (Pakistani)
-                    {detailTour.foreignerPrice && (
-                      <span className="block mt-0.5">~${Math.round(detailTour.foreignerPrice / 280)} USD for international visitors</span>
-                    )}
-                  </p>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2 text-xs sm:space-y-3 sm:text-sm">
-                  <div className="flex justify-between gap-4"><span className="text-muted-foreground">Duration</span><span className="font-medium">{detailTour.days} days</span></div>
-                  <div className="flex justify-between gap-4"><span className="text-muted-foreground">Seats available</span><span className="font-medium">{detailTour.availableSeats ?? detailTour.capacity}</span></div>
-                  <div className="flex justify-between gap-4"><span className="text-muted-foreground">Region</span><span className="font-medium text-right">{detailTour.location || "Pakistan"}</span></div>
-                </div>
-
-                <div className="rounded-lg bg-primary/5 p-3 text-xs text-muted-foreground sm:p-4 sm:text-sm">
-                  <div className="mb-1.5 flex items-center gap-2 font-medium text-foreground sm:mb-2"><Info className="size-3.5 text-primary sm:size-4" /> Booking note</div>
-                  Reserve now and our team will confirm schedule, pickup details, and payment status.
-                </div>
-
-                <Button asChild className="w-full bg-terracotta-500 text-white hover:bg-terracotta-600" size="lg" onClick={() => setDetailTour(null)}>
-                  <Link to="/booking">Book This Tour</Link>
-                </Button>
-              </div>
-            </aside>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-sand-50">
@@ -533,9 +757,9 @@ const Tours = () => {
                         </p>
 
                         {tour.route?.length > 0 && (
-                          <div className="mb-4">
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                              <MapPin className="size-3" />
+                          <div className="mb-3">
+                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-1.5">
+                              <MapPin className="size-3.5" />
                               <span>{tour.route.length} stops on the route</span>
                             </div>
                             <div className="flex flex-wrap gap-1">
@@ -545,26 +769,57 @@ const Tours = () => {
                                 </Badge>
                               ))}
                               {tour.route.length > 3 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  +{tour.route.length - 3} more
-                                </Badge>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Badge variant="secondary" className="text-xs cursor-pointer hover:bg-primary/10 transition-colors">
+                                      +{tour.route.length - 3} more
+                                    </Badge>
+                                  </PopoverTrigger>
+                                  <PopoverContent align="start" side="top" className="w-64 p-3">
+                                    <p className="text-xs font-medium text-muted-foreground mb-2">All route stops:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {tour.route.map((stop, i) => (
+                                        <Badge key={i} variant="outline" className="text-xs">
+                                          {stop.place?.name || `Stop ${i + 1}`}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
                               )}
                             </div>
                           </div>
                         )}
 
                         {tour.included?.length > 0 && (
-                          <div className="text-xs text-muted-foreground mb-4">
-                            <span className="font-medium">Includes: </span>
+                          <div className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                            <span className="font-medium text-foreground">Includes: </span>
                             {tour.included.slice(0, 2).join(", ")}
-                            {tour.included.length > 2 && ` +${tour.included.length - 2} more`}
+                            {tour.included.length > 2 && (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <span className="text-primary font-medium cursor-pointer hover:underline ml-0.5">+{tour.included.length - 2} more</span>
+                                </PopoverTrigger>
+                                <PopoverContent align="start" side="top" className="w-72 p-3">
+                                  <p className="text-xs font-medium text-muted-foreground mb-2">Full inclusion list:</p>
+                                  <ul className="space-y-1">
+                                    {tour.included.map((item, i) => (
+                                      <li key={i} className="flex items-start gap-1.5 text-sm">
+                                        <CheckCircle2 className="size-3.5 mt-0.5 shrink-0 text-primary" />
+                                        <span>{item}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </PopoverContent>
+                              </Popover>
+                            )}
                           </div>
                         )}
                       </div>
 
                       <Separator className="mb-4" />
 
-                      <div className="flex items-end justify-between gap-3">
+                      <div className="space-y-3">
                         <div>
                           {discountedPrice ? (
                             <div className="flex flex-wrap items-center gap-2">
@@ -581,23 +836,25 @@ const Tours = () => {
                             )}
                           </p>
                         </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => setDetailTour(tour)}>
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" variant="outline" className="min-h-9" onClick={() => setDetailTour(tour)}>
                             Details
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
+                            className="min-h-9"
                             onClick={() => {
                               setSelectedTour(getRoutePlaces(tour));
                               setSelectedTourName(tour.name);
                             }}
                             disabled={getRoutePlaces(tour).length === 0}
+                            aria-label="View route on map"
                           >
                             <MapPin className="size-3.5" />
                           </Button>
-                          <Button asChild size="sm" className="bg-terracotta-500 hover:bg-terracotta-600 text-white">
-                            <Link to="/booking">Book</Link>
+                          <Button asChild size="sm" className="bg-terracotta-500 hover:bg-terracotta-600 text-white min-h-9">
+                            <Link to={`/booking?tour=${tour._id || tour.id}`}>Book</Link>
                           </Button>
                         </div>
                       </div>
@@ -610,23 +867,21 @@ const Tours = () => {
         )}
 
         {selectedTour && (
-          <div className="mt-10">
-            <Card className="overflow-hidden">
-              <div className="p-4 flex items-center justify-between border-b">
-                <h2 className="font-semibold text-lg text-foreground">{selectedTourName} - Route Map</h2>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedTour(null)}>
-                  <X className="size-4" />
-                </Button>
-              </div>
+          <Dialog open={Boolean(selectedTour)} onOpenChange={(open) => { if (!open) setSelectedTour(null); }}>
+            <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden p-0">
+              <DialogHeader className="p-5 pb-0">
+                <DialogTitle>{selectedTourName} — Route Map</DialogTitle>
+                <DialogDescription>Interactive map showing all route stops for this tour.</DialogDescription>
+              </DialogHeader>
               <div className="p-0">
                 <TourMap route={selectedTour} />
               </div>
-            </Card>
-          </div>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
 
-      <TourDetailsDialog />
+      <TourDetailsDialog tour={detailTour} onClose={() => setDetailTour(null)} />
     </div>
   );
 };

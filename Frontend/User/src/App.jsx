@@ -10,6 +10,9 @@ const Tours = lazy(() => import("./pages/Tours"));
 const Booking = lazy(() => import("./pages/Booking"));
 const Feedback = lazy(() => import("./pages/Feedback"));
 const About = lazy(() => import("./pages/About"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogDetail = lazy(() => import("./pages/BlogDetail"));
+const Contact = lazy(() => import("./pages/Contact"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -80,6 +83,30 @@ const router = createBrowserRouter([
         element: (
           <SuspenseWrapper>
             <About />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "blog",
+        element: (
+          <SuspenseWrapper>
+            <Blog />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "blog/:slug",
+        element: (
+          <SuspenseWrapper>
+            <BlogDetail />
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: "contact",
+        element: (
+          <SuspenseWrapper>
+            <Contact />
           </SuspenseWrapper>
         ),
       },

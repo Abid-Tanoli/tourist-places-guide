@@ -12,6 +12,8 @@ const navItems = [
   { to: "/admin/categories", label: "Categories" },
   { to: "/admin/regions", label: "Regions" },
   { to: "/admin/faqs", label: "FAQs" },
+  { to: "/admin/blog", label: "Blog" },
+  { to: "/admin/inquiries", label: "Inquiries" },
   { to: "/admin/reports", label: "Reports" },
   { to: "/admin/settings", label: "Settings" },
 ];

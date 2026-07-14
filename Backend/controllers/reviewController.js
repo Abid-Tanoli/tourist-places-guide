@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Review from "../models/Review.js";
 import Place from "../models/Place.js";
+import Tour from "../models/Tour.js";
 
 export const getReviews = async (req, res, next) => {
   try {
@@ -81,27 +82,64 @@ export const getReviewsByPlace = async (req, res, next) => {
   }
 };
 
-export const createReview = async (req, res, next) => {
+export const getReviewsByTour = async (req, res, next) => {
   try {
-    const review = await Review.create(req.body);
+    const { tourId } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
 
-    // Update place rating
-    const stats = await Review.aggregate([
-      { $match: { place: review.place, status: "approved" } },
-      {
-        $group: {
-          _id: null,
-          avgRating: { $avg: "$rating" },
-          totalReviews: { $sum: 1 },
-        },
-      },
+    const [reviews, total, stats] = await Promise.all([
+      Review.find({ tour: tourId, status: "approved" })
+        .populate("user", "name avatar")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
+      Review.countDocuments({ tour: tourId, status: "approved" }),
+      Review.aggregate([
+        { $match: { tour: new mongoose.Types.ObjectId(tourId), status: "approved" } },
+        { $group: { _id: null, avgRating: { $avg: "$rating" }, totalReviews: { $sum: 1 } } },
+      ]),
     ]);
 
-    if (stats[0]) {
-      await Place.findByIdAndUpdate(review.place, {
-        rating: Math.round(stats[0].avgRating * 10) / 10,
-        totalReviews: stats[0].totalReviews,
-      });
+    const ratingStats = stats[0] || { avgRating: 0, totalReviews: 0 };
+
+    res.json({
+      reviews,
+      stats: {
+        avgRating: Math.round(ratingStats.avgRating * 10) / 10,
+        totalReviews: ratingStats.totalReviews,
+      },
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createReview = async (req, res, next) => {
+  try {
+    if (!req.body.place && !req.body.tour) {
+      return res.status(400).json({ message: "Either place or tour is required." });
+    }
+
+    const review = await Review.create(req.body);
+
+    if (review.place) {
+      const stats = await Review.aggregate([
+        { $match: { place: review.place, status: "approved" } },
+        { $group: { _id: null, avgRating: { $avg: "$rating" }, totalReviews: { $sum: 1 } } },
+      ]);
+      if (stats[0]) {
+        await Place.findByIdAndUpdate(review.place, {
+          rating: Math.round(stats[0].avgRating * 10) / 10,
+          totalReviews: stats[0].totalReviews,
+        });
+      }
     }
 
     res.status(201).json(review);

@@ -79,6 +79,33 @@ const heroSlides = [
     subheading:
       "Trace Karachi and Sindh's coast through beach evenings, island escapes, seafood tables, and the laid-back rhythm of the Arabian Sea.",
   },
+  {
+    image: "https://images.unsplash.com/photo-1595815771614-ade9d6527cc3?w=1600&q=80",
+    alt: "Lush green valley with river and snow-capped peaks in Kashmir",
+    badge: "Paradise on Earth",
+    heading: "Wander Into",
+    headingAccent: "Neelum Valley",
+    subheading:
+      "Follow the winding road through Neelum's emerald forests, riverside villages, and alpine meadows tucked beneath the highest peaks of Azad Kashmir.",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1580746738099-762e8ab1b1bf?w=1600&q=80",
+    alt: "Dramatic red rock formations along the Makran coastal highway",
+    badge: "Edge of Pakistan",
+    heading: "Explore the",
+    headingAccent: "Makran Coast",
+    subheading:
+      "Drive the coastal highway past Hingol's towering mud volcanoes, Princess of Hope, and the remote turquoise shores of Gwadar and Ormara.",
+  },
+  {
+    image: "https://images.unsplash.com/photo-1529245019870-59b249281fd3?w=1600&q=80",
+    alt: "Colorful Pakistani truck art and bustling bazaar street scene",
+    badge: "Culture Alive",
+    heading: "Immerse In",
+    headingAccent: "Living Culture",
+    subheading:
+      "Lose yourself in Lahore's food streets, Peshawar's bazaars, and the kaleidoscope of truck art, festivals, and warm hospitality that define Pakistan.",
+  },
 ];
 const fallbackTourImage = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80";
 
@@ -239,7 +266,7 @@ const Home = (props) => {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {displayTours.map((tour) => {
                 const discountedPrice = getDiscountedPrice(tour);
                 return (

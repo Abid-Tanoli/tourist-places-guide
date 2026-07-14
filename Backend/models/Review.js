@@ -40,7 +40,14 @@ const reviewSchema = new mongoose.Schema(
     place: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Place",
-      required: true,
+      required: function () {
+        return !this.tour;
+      },
+    },
+    tour: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tour",
+      default: null,
     },
     rating: {
       type: Number,
@@ -78,6 +85,7 @@ const reviewSchema = new mongoose.Schema(
 );
 
 reviewSchema.index({ place: 1, createdAt: -1 });
+reviewSchema.index({ tour: 1, createdAt: -1 });
 reviewSchema.index({ status: 1 });
 
 const Review = mongoose.model("Review", reviewSchema);

@@ -21,6 +21,8 @@ import faqRoutes from "./routes/faqRoutes.js";
 import settingsRoutes from "./routes/settingsRoutes.js";
 import reportsRoutes from "./routes/reportsRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import postRoutes from "./routes/postRoutes.js";
+import inquiryRoutes from "./routes/inquiryRoutes.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 
 import express from "express";
@@ -49,6 +51,8 @@ app.use("/api/faqs", faqRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/posts", postRoutes);
+app.use("/api/inquiries", inquiryRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

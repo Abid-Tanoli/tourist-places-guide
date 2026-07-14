@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ChevronRight, MapPin, Mountain, Search, Star, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Mountain, Search, Star, Users } from "lucide-react";
 
 const SLIDE_INTERVAL_MS = 5500;
 
@@ -14,36 +14,79 @@ const HeroSlider = ({
   stats = {},
 }) => {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const pauseReasonsRef = useRef(new Set());
+  const timerRef = useRef(null);
 
   const hasSlides = slides.length > 0;
 
-  useEffect(() => {
-    if (!hasSlides || isPaused) return undefined;
+  const isPaused = pauseReasonsRef.current.size > 0;
 
-    const timer = window.setInterval(() => {
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const startTimer = useCallback(() => {
+    clearTimer();
+    timerRef.current = setInterval(() => {
       setActiveIndex((current) => (current + 1) % slides.length);
     }, SLIDE_INTERVAL_MS);
+  }, [clearTimer, slides.length]);
 
-    return () => window.clearInterval(timer);
-  }, [hasSlides, isPaused, slides.length]);
+  useEffect(() => {
+    clearTimer();
+    if (hasSlides && !isPaused) {
+      startTimer();
+    }
+    return clearTimer;
+  }, [hasSlides, isPaused, startTimer, clearTimer]);
 
-  const goToPrevious = () => {
-    setActiveIndex((current) => (current - 1 + slides.length) % slides.length);
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        pauseReasonsRef.current.add("hidden");
+      } else {
+        pauseReasonsRef.current.delete("hidden");
+      }
+      pauseReasonsRef.current = new Set(pauseReasonsRef.current);
+      if (pauseReasonsRef.current.size === 0 && hasSlides) {
+        startTimer();
+      } else {
+        clearTimer();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [hasSlides, startTimer, clearTimer]);
+
+  const addPause = (reason) => {
+    pauseReasonsRef.current.add(reason);
+    pauseReasonsRef.current = new Set(pauseReasonsRef.current);
+    clearTimer();
   };
 
-  const goToNext = () => {
-    setActiveIndex((current) => (current + 1) % slides.length);
+  const removePause = (reason) => {
+    pauseReasonsRef.current.delete(reason);
+    pauseReasonsRef.current = new Set(pauseReasonsRef.current);
+    if (pauseReasonsRef.current.size === 0 && hasSlides) {
+      startTimer();
+    }
   };
+
+  const navigateTo = (index) => {
+    setActiveIndex(index);
+    startTimer();
+  };
+
+  const goToPrevious = () => navigateTo((activeIndex - 1 + slides.length) % slides.length);
+  const goToNext = () => navigateTo((activeIndex + 1) % slides.length);
 
   if (!hasSlides) return null;
 
   return (
-    <section
-      className="relative flex h-[85vh] min-h-[600px] items-center overflow-hidden"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
+    <section className="relative flex h-[85vh] min-h-[500px] sm:min-h-[600px] items-center overflow-hidden">
       <div className="absolute inset-0">
         {slides.map((slide, index) => (
           <img
@@ -71,18 +114,22 @@ const HeroSlider = ({
                 }`}
               >
                 <Badge className="mb-4 border-0 bg-terracotta-500 text-white">{slide.badge}</Badge>
-                <h1 className="font-heading mb-6 text-5xl font-bold leading-tight text-white sm:text-6xl lg:text-7xl">
+                <h1 className="font-heading mb-4 text-4xl font-bold leading-tight text-white sm:mb-6 sm:text-5xl md:text-6xl lg:text-7xl">
                   {slide.heading}
                   <span className="block text-terracotta-400">{slide.headingAccent}</span>
                 </h1>
-                <p className="mb-8 max-w-lg text-lg leading-relaxed text-white/80">
+                <p className="mb-8 max-w-lg text-base leading-relaxed text-white/80 sm:text-lg">
                   {slide.subheading}
                 </p>
               </div>
             ))}
           </div>
 
-          <div className="max-w-lg rounded-xl border border-white/20 bg-white/10 p-2 backdrop-blur-md">
+          <div
+            className="max-w-lg rounded-xl border border-white/20 bg-white/10 p-2 backdrop-blur-md"
+            onMouseEnter={() => addPause("controls")}
+            onMouseLeave={() => removePause("controls")}
+          >
             <form onSubmit={onSearchSubmit} className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/50" />
@@ -91,6 +138,8 @@ const HeroSlider = ({
                   placeholder="Where do you want to go?"
                   value={searchValue}
                   onChange={(event) => onSearchChange(event.target.value)}
+                  onFocus={() => addPause("search")}
+                  onBlur={() => removePause("search")}
                   className="h-11 border-0 bg-transparent pl-10 text-white placeholder:text-white/50 focus-visible:ring-0"
                 />
               </div>
@@ -108,13 +157,17 @@ const HeroSlider = ({
         </div>
       </div>
 
-      <div className="absolute inset-x-0 bottom-6 z-10 flex items-center justify-center gap-2 px-4">
+      <div
+        className="absolute inset-x-0 bottom-6 z-10 flex items-center justify-center gap-2 px-4"
+        onMouseEnter={() => addPause("controls")}
+        onMouseLeave={() => removePause("controls")}
+      >
         {slides.map((slide, index) => (
           <button
             key={slide.badge}
             type="button"
             aria-label={`Show ${slide.badge} slide`}
-            onClick={() => setActiveIndex(index)}
+            onClick={() => navigateTo(index)}
             className={`h-2.5 rounded-full transition-all duration-300 ${
               index === activeIndex ? "w-9 bg-terracotta-400" : "w-2.5 bg-white/45 hover:bg-white/80"
             }`}
@@ -122,26 +175,32 @@ const HeroSlider = ({
         ))}
       </div>
 
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        aria-label="Previous hero slide"
-        onClick={goToPrevious}
-        className="absolute left-3 top-1/2 z-10 size-11 -translate-y-1/2 rounded-full bg-black/25 text-white backdrop-blur-sm hover:bg-black/40 hover:text-white sm:left-6"
+      <div
+        className="absolute left-0 right-0 top-1/2 z-10 flex -translate-y-1/2 justify-between px-3 sm:px-6"
+        onMouseEnter={() => addPause("controls")}
+        onMouseLeave={() => removePause("controls")}
       >
-        <ChevronLeft className="size-6" />
-      </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        aria-label="Next hero slide"
-        onClick={goToNext}
-        className="absolute right-3 top-1/2 z-10 size-11 -translate-y-1/2 rounded-full bg-black/25 text-white backdrop-blur-sm hover:bg-black/40 hover:text-white sm:right-6"
-      >
-        <ChevronRight className="size-6" />
-      </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Previous hero slide"
+          onClick={goToPrevious}
+          className="size-11 rounded-full bg-black/25 text-white backdrop-blur-sm hover:bg-black/40 hover:text-white"
+        >
+          <ChevronLeft className="size-6" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Next hero slide"
+          onClick={goToNext}
+          className="size-11 rounded-full bg-black/25 text-white backdrop-blur-sm hover:bg-black/40 hover:text-white"
+        >
+          <ChevronRight className="size-6" />
+        </Button>
+      </div>
     </section>
   );
 };

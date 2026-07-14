@@ -19,6 +19,9 @@ const AdminReviews = lazy(() => import("./pages/admin/AdminReviews"));
 const AdminFAQ = lazy(() => import("./pages/admin/AdminFAQ"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
+const AdminBlog = lazy(() => import("./pages/admin/AdminBlog"));
+const AdminBlogForm = lazy(() => import("./pages/admin/AdminBlogForm"));
+const AdminInquiries = lazy(() => import("./pages/admin/AdminInquiries"));
 
 const Loading = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -187,6 +190,38 @@ const router = createBrowserRouter([
             element: (
               <SuspenseWrapper>
                 <AdminReports />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: "blog",
+            element: (
+              <SuspenseWrapper>
+                <AdminBlog />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: "blog/add",
+            element: (
+              <SuspenseWrapper>
+                <AdminBlogForm />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: "blog/edit/:id",
+            element: (
+              <SuspenseWrapper>
+                <AdminBlogForm />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: "inquiries",
+            element: (
+              <SuspenseWrapper>
+                <AdminInquiries />
               </SuspenseWrapper>
             ),
           },

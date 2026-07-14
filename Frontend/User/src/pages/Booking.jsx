@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useSearchParams } from "react-router-dom";
 import api from "../api/axios";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const getTourPrice = (tour, userType) => {
 
 const Booking = () => {
   const { user, isAuthenticated } = useAuth();
+  const [searchParams] = useSearchParams();
   const [tours, setTours] = useState([]);
   const [selectedTour, setSelectedTour] = useState("");
   const [selectedDeparture, setSelectedDeparture] = useState("");
@@ -76,6 +78,10 @@ const Booking = () => {
         const { data } = await api.get("/tours");
         const toursArray = Array.isArray(data) ? data : data.tours || [];
         setTours(toursArray);
+        const tourParam = searchParams.get("tour");
+        if (tourParam && toursArray.some((t) => t._id === tourParam)) {
+          setSelectedTour(tourParam);
+        }
       } catch (requestError) {
         setError(requestError.response?.data?.message || "Unable to load tours.");
       } finally {
@@ -83,7 +89,7 @@ const Booking = () => {
       }
     };
     fetchTours();
-  }, []);
+  }, [searchParams]);
 
   const resetForm = () => {
     setSelectedTour("");

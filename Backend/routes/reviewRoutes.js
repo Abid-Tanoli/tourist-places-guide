@@ -6,6 +6,7 @@ import {
   deleteReview,
   getReviews,
   getReviewsByPlace,
+  getReviewsByTour,
   likeReview,
   updateReviewStatus,
 } from "../controllers/reviewController.js";
@@ -22,11 +23,13 @@ const createReviewValidators = [
     .withMessage("Email must be valid.")
     .normalizeEmail(),
   body("place")
-    .notEmpty()
-    .withMessage("Place is required.")
-    .bail()
+    .optional({ values: "falsy" })
     .isMongoId()
     .withMessage("Place must be valid."),
+  body("tour")
+    .optional({ values: "falsy" })
+    .isMongoId()
+    .withMessage("Tour must be valid."),
   body("rating")
     .isInt({ min: 1, max: 5 })
     .withMessage("Rating must be between 1 and 5."),
@@ -40,6 +43,7 @@ router
   .post(createReviewValidators, validateRequest, createReview);
 
 router.get("/place/:placeId", getReviewsByPlace);
+router.get("/tour/:tourId", getReviewsByTour);
 
 router.put("/:id/status", protect, admin, updateReviewStatus);
 router.post("/:id/reply", protect, admin, addReply);
