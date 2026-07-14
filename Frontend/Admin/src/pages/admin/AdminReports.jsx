@@ -2,6 +2,13 @@ import React, { useEffect, useState } from "react";
 import api from "../../api/axios";
 import { getApiError } from "./adminUtils";
 
+const borderColorMap = {
+  blue: "border-blue-500",
+  green: "border-green-500",
+  purple: "border-purple-500",
+  yellow: "border-yellow-500",
+};
+
 const AdminReports = () => {
   const [reports, setReports] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -24,7 +31,7 @@ const AdminReports = () => {
   useEffect(() => { fetchReports(); }, [period]);
 
   const statCard = (label, value, color = "blue") => (
-    <div className={`bg-white rounded-lg shadow-sm p-5 border-l-4 border-${color}-500`}>
+    <div className={`bg-white rounded-lg shadow-sm p-5 border-l-4 ${borderColorMap[color]}`}>
       <p className="text-sm text-gray-500">{label}</p>
       <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
     </div>

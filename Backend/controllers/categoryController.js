@@ -31,9 +31,17 @@ export const getCategoryById = async (req, res, next) => {
   }
 };
 
+const allowedCategoryFields = ["name", "slug", "description", "image", "status"];
+
+const pickAllowed = (body, fields) =>
+  fields.reduce((obj, key) => {
+    if (body[key] !== undefined) obj[key] = body[key];
+    return obj;
+  }, {});
+
 export const createCategory = async (req, res, next) => {
   try {
-    const category = await Category.create(req.body);
+    const category = await Category.create(pickAllowed(req.body, allowedCategoryFields));
     res.status(201).json(category);
   } catch (error) {
     if (error.code === 11000) {
@@ -45,7 +53,7 @@ export const createCategory = async (req, res, next) => {
 
 export const updateCategory = async (req, res, next) => {
   try {
-    const category = await Category.findByIdAndUpdate(req.params.id, req.body, {
+    const category = await Category.findByIdAndUpdate(req.params.id, pickAllowed(req.body, allowedCategoryFields), {
       new: true,
       runValidators: true,
     });

@@ -41,6 +41,8 @@ const feedbackSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+feedbackSchema.index({ status: 1, createdAt: -1 });
+
 const Feedback = mongoose.model("Feedback", feedbackSchema);
 
 export default Feedback;

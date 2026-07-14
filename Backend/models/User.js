@@ -69,6 +69,9 @@ userSchema.methods.matchPassword = function matchPassword(enteredPassword) {
   return bcrypt.compare(enteredPassword, this.password);
 };
 
+userSchema.index({ emailVerificationToken: 1 }, { sparse: true });
+userSchema.index({ passwordResetToken: 1 }, { sparse: true });
+
 userSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString("hex");
   this.passwordResetToken = crypto

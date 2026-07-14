@@ -81,9 +81,17 @@ export const getPostBySlug = async (req, res, next) => {
   }
 };
 
+const allowedPostFields = ["title", "slug", "excerpt", "content", "coverImage", "author", "tags", "status", "publishedAt"];
+
+const pickAllowed = (body, fields) =>
+  fields.reduce((obj, key) => {
+    if (body[key] !== undefined) obj[key] = body[key];
+    return obj;
+  }, {});
+
 export const createPost = async (req, res, next) => {
   try {
-    const postData = { ...req.body };
+    const postData = pickAllowed(req.body, allowedPostFields);
     if (!postData.slug && postData.title) {
       let slug = slugify(postData.title);
       const existing = await Post.findOne({ slug });
@@ -105,7 +113,7 @@ export const createPost = async (req, res, next) => {
 
 export const updatePost = async (req, res, next) => {
   try {
-    const updateData = { ...req.body };
+    const updateData = pickAllowed(req.body, allowedPostFields);
     if (updateData.title && !updateData.slug) {
       updateData.slug = slugify(updateData.title);
     }

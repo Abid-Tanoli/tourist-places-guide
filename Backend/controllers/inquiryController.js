@@ -1,8 +1,16 @@
 import Inquiry from "../models/Inquiry.js";
 
+const allowedInquiryFields = ["name", "email", "phone", "subject", "message"];
+
+const pickAllowed = (body, fields) =>
+  fields.reduce((obj, key) => {
+    if (body[key] !== undefined) obj[key] = body[key];
+    return obj;
+  }, {});
+
 export const createInquiry = async (req, res, next) => {
   try {
-    const inquiry = await Inquiry.create(req.body);
+    const inquiry = await Inquiry.create(pickAllowed(req.body, allowedInquiryFields));
     res.status(201).json(inquiry);
   } catch (error) {
     next(error);

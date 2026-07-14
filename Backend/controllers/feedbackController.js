@@ -2,9 +2,17 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import Feedback from "../models/Feedback.js";
 
+const allowedFeedbackFields = ["name", "email", "country", "rating", "feedBackText"];
+
+const pickAllowed = (body, fields) =>
+  fields.reduce((obj, key) => {
+    if (body[key] !== undefined) obj[key] = body[key];
+    return obj;
+  }, {});
+
 export const createFeedback = async (req, res, next) => {
   try {
-    const feedback = await Feedback.create(req.body);
+    const feedback = await Feedback.create(pickAllowed(req.body, allowedFeedbackFields));
     res.status(201).json(feedback);
   } catch (error) {
     next(error);

@@ -14,9 +14,17 @@ export const getFAQs = async (req, res, next) => {
   }
 };
 
+const allowedFAQFields = ["question", "answer", "category", "order", "status"];
+
+const pickAllowed = (body, fields) =>
+  fields.reduce((obj, key) => {
+    if (body[key] !== undefined) obj[key] = body[key];
+    return obj;
+  }, {});
+
 export const createFAQ = async (req, res, next) => {
   try {
-    const faq = await FAQ.create(req.body);
+    const faq = await FAQ.create(pickAllowed(req.body, allowedFAQFields));
     res.status(201).json(faq);
   } catch (error) {
     next(error);
@@ -25,7 +33,7 @@ export const createFAQ = async (req, res, next) => {
 
 export const updateFAQ = async (req, res, next) => {
   try {
-    const faq = await FAQ.findByIdAndUpdate(req.params.id, req.body, {
+    const faq = await FAQ.findByIdAndUpdate(req.params.id, pickAllowed(req.body, allowedFAQFields), {
       new: true,
       runValidators: true,
     });

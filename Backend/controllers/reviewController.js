@@ -121,13 +121,21 @@ export const getReviewsByTour = async (req, res, next) => {
   }
 };
 
+const allowedReviewFields = ["name", "email", "place", "tour", "rating", "title", "comment", "images", "user"];
+
+const pickAllowed = (body, fields) =>
+  fields.reduce((obj, key) => {
+    if (body[key] !== undefined) obj[key] = body[key];
+    return obj;
+  }, {});
+
 export const createReview = async (req, res, next) => {
   try {
     if (!req.body.place && !req.body.tour) {
       return res.status(400).json({ message: "Either place or tour is required." });
     }
 
-    const review = await Review.create(req.body);
+    const review = await Review.create(pickAllowed(req.body, allowedReviewFields));
 
     if (review.place) {
       const stats = await Review.aggregate([

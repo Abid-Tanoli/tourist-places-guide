@@ -33,6 +33,7 @@ import {
   Mountain,
   BookOpen,
   MessageCircle,
+  Info,
   X,
 } from "lucide-react";
 
@@ -84,7 +85,7 @@ const Navbar = ({
     { to: "/feedback", label: "Reviews", icon: MapPin },
     { to: "/blog", label: "Blog", icon: BookOpen },
     { to: "/contact", label: "Contact", icon: MessageCircle },
-    { to: "/about", label: "About", icon: MapPin },
+    { to: "/about", label: "About", icon: Info },
   ];
 
   const FilterControls = ({ compact = false }) => (

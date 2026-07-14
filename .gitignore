@@ -29,3 +29,6 @@ dist-ssr
 Backend/.env
 Frontend/User/.env
 Frontend/Admin/.env
+
+# Vercel
+.vercel

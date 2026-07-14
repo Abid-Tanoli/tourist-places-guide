@@ -26,6 +26,7 @@ const AdminBlogForm = () => {
     const fetchPost = async () => {
       try {
         setLoading(true);
+        // NOTE: Backend lacks a GET /posts/admin/:id endpoint, so we fetch all admin posts and filter by ID.
         const { data } = await api.get(`/posts/admin`);
         const post = data.posts?.find((p) => p._id === id);
         if (post) {

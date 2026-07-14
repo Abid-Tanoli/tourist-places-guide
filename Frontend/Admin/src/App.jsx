@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from "react";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import AdminLayout from "./layouts/AdminLayout";
 import ProtectedAdminRoute from "./routes/ProtectedAdminRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
 const AdminForgotPassword = lazy(() => import("./pages/admin/AdminForgotPassword"));
@@ -232,7 +233,11 @@ const router = createBrowserRouter([
 ]);
 
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <ErrorBoundary>
+      <RouterProvider router={router} />
+    </ErrorBoundary>
+  );
 }
 
 export default App;

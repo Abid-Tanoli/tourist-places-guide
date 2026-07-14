@@ -76,20 +76,35 @@ export const getTourById = async (req, res, next) => {
   }
 };
 
+const allowedTourFields = [
+  "name", "slug", "description", "shortDescription",
+  "days", "price", "pakistaniPrice", "foreignerPrice",
+  "discount", "included", "excluded", "route",
+  "departures", "capacity", "availableSeats",
+  "images", "image", "location", "status", "featured",
+];
+
+const pickAllowed = (body, fields) =>
+  fields.reduce((obj, key) => {
+    if (body[key] !== undefined) obj[key] = body[key];
+    return obj;
+  }, {});
+
 export const createTour = async (req, res, next) => {
   try {
-    if (!req.body.slug && req.body.name) {
-      req.body.slug = req.body.name
+    const data = pickAllowed(req.body, allowedTourFields);
+    if (!data.slug && data.name) {
+      data.slug = data.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
     }
 
-    if (!req.body.availableSeats && req.body.capacity) {
-      req.body.availableSeats = req.body.capacity;
+    if (!data.availableSeats && data.capacity) {
+      data.availableSeats = data.capacity;
     }
 
-    const tour = await Tour.create(req.body);
+    const tour = await Tour.create(data);
     const populatedTour = await tour.populate(populateRoute);
     res.status(201).json(populatedTour);
   } catch (error) {
@@ -102,14 +117,15 @@ export const createTour = async (req, res, next) => {
 
 export const updateTour = async (req, res, next) => {
   try {
-    if (req.body.name && !req.body.slug) {
-      req.body.slug = req.body.name
+    const data = pickAllowed(req.body, allowedTourFields);
+    if (data.name && !data.slug) {
+      data.slug = data.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
     }
 
-    const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
+    const tour = await Tour.findByIdAndUpdate(req.params.id, data, {
       new: true,
       runValidators: true,
     }).populate(populateRoute);

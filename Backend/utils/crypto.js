@@ -6,7 +6,9 @@ const getEncryptionKey = () => {
   if (key) {
     return crypto.createHash("sha256").update(key).digest();
   }
-  // Fallback only for development — never use in production
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("ENCRYPTION_KEY is required in production");
+  }
   console.warn("ENCRYPTION_KEY not set — using fallback key. Set ENCRYPTION_KEY in .env for production.");
   return crypto.createHash("sha256").update("fallback_secret_key_at_least_32_chars").digest();
 };

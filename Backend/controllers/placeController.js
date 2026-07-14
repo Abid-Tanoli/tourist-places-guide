@@ -166,15 +166,31 @@ export const getFeaturedPlaces = async (req, res, next) => {
   }
 };
 
+const allowedPlaceFields = [
+  "name", "slug", "description", "shortDescription",
+  "region", "regionRef", "category", "categoryRef",
+  "address", "lat", "lng", "googleMapsUrl",
+  "image", "gallery", "bestTime", "openingHours",
+  "entryFee", "facilities", "contactInfo", "website",
+  "featured", "status", "seoFields",
+];
+
+const pickAllowed = (body, fields) =>
+  fields.reduce((obj, key) => {
+    if (body[key] !== undefined) obj[key] = body[key];
+    return obj;
+  }, {});
+
 export const createPlace = async (req, res, next) => {
   try {
-    if (!req.body.slug && req.body.name) {
-      req.body.slug = req.body.name
+    const data = pickAllowed(req.body, allowedPlaceFields);
+    if (!data.slug && data.name) {
+      data.slug = data.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
     }
-    const place = await Place.create(req.body);
+    const place = await Place.create(data);
     res.status(201).json(place);
   } catch (error) {
     if (error.code === 11000) {
@@ -186,14 +202,15 @@ export const createPlace = async (req, res, next) => {
 
 export const updatePlace = async (req, res, next) => {
   try {
-    if (req.body.name && !req.body.slug) {
-      req.body.slug = req.body.name
+    const data = pickAllowed(req.body, allowedPlaceFields);
+    if (data.name && !data.slug) {
+      data.slug = data.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
     }
 
-    const place = await Place.findByIdAndUpdate(req.params.id, req.body, {
+    const place = await Place.findByIdAndUpdate(req.params.id, data, {
       new: true,
       runValidators: true,
     });

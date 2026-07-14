@@ -31,9 +31,17 @@ export const getRegionById = async (req, res, next) => {
   }
 };
 
+const allowedRegionFields = ["name", "slug", "description", "image", "status"];
+
+const pickAllowed = (body, fields) =>
+  fields.reduce((obj, key) => {
+    if (body[key] !== undefined) obj[key] = body[key];
+    return obj;
+  }, {});
+
 export const createRegion = async (req, res, next) => {
   try {
-    const region = await Region.create(req.body);
+    const region = await Region.create(pickAllowed(req.body, allowedRegionFields));
     res.status(201).json(region);
   } catch (error) {
     if (error.code === 11000) {
@@ -45,7 +53,7 @@ export const createRegion = async (req, res, next) => {
 
 export const updateRegion = async (req, res, next) => {
   try {
-    const region = await Region.findByIdAndUpdate(req.params.id, req.body, {
+    const region = await Region.findByIdAndUpdate(req.params.id, pickAllowed(req.body, allowedRegionFields), {
       new: true,
       runValidators: true,
     });

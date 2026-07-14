@@ -10,8 +10,8 @@ import { admin, protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", getSettings);
-router.get("/:key", getSettingByKey);
+router.get("/", protect, admin, getSettings);
+router.get("/:key", protect, admin, getSettingByKey);
 router.put("/:key", protect, admin, updateSetting);
 router.put("/", protect, admin, bulkUpdateSettings);
 router.delete("/:key", protect, admin, deleteSetting);
