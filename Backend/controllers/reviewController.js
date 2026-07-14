@@ -40,6 +40,9 @@ export const getReviews = async (req, res, next) => {
 export const getReviewsByPlace = async (req, res, next) => {
   try {
     const { placeId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(placeId)) {
+      return res.json({ reviews: [], stats: { avgRating: 0, totalReviews: 0 }, pagination: { page: 1, limit: 20, total: 0, pages: 0 } });
+    }
     const { page = 1, limit = 20 } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
@@ -85,6 +88,9 @@ export const getReviewsByPlace = async (req, res, next) => {
 export const getReviewsByTour = async (req, res, next) => {
   try {
     const { tourId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(tourId)) {
+      return res.json({ reviews: [], stats: { avgRating: 0, totalReviews: 0 }, pagination: { page: 1, limit: 20, total: 0, pages: 0 } });
+    }
     const { page = 1, limit = 20 } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
