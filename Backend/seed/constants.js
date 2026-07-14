@@ -26,13 +26,13 @@ const categories = [
 ];
 
 const regions = [
-  { name: "Gilgit-Baltistan", slug: "gilgit-baltistan", description: "Northern areas with stunning mountain landscapes" },
-  { name: "Khyber Pakhtunkhwa", slug: "khyber-pakhtunkhwa", description: "Northwest province with valleys and mountains" },
-  { name: "Punjab", slug: "punjab", description: "Heartland of Pakistan with historical sites" },
-  { name: "Azad Kashmir", slug: "azad-kashmir", description: "Beautiful paradise on earth" },
-  { name: "Sindh", slug: "sindh", description: "Land of Sufi culture and historical heritage" },
-  { name: "Balochistan", slug: "balochistan", description: "Largest province with unique landscapes" },
-  { name: "Islamabad Capital Territory", slug: "islamabad-capital-territory", description: "Federal capital territory with national landmarks" },
+  { name: "Gilgit-Baltistan", slug: "gilgit-baltistan", description: "Northern areas with stunning mountain landscapes", image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80" },
+  { name: "Khyber Pakhtunkhwa", slug: "khyber-pakhtunkhwa", description: "Northwest province with valleys and mountains", image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80" },
+  { name: "Punjab", slug: "punjab", description: "Heartland of Pakistan with historical sites", image: "https://images.unsplash.com/photo-1587474260584-136574528ed5?w=800&q=80" },
+  { name: "Azad Kashmir", slug: "azad-kashmir", description: "Beautiful paradise on earth", image: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&q=80" },
+  { name: "Sindh", slug: "sindh", description: "Land of Sufi culture and historical heritage", image: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=800&q=80" },
+  { name: "Balochistan", slug: "balochistan", description: "Largest province with unique landscapes", image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80" },
+  { name: "Islamabad Capital Territory", slug: "islamabad-capital-territory", description: "Federal capital territory with national landmarks", image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80" },
 ];
 
 export { categories, regions };

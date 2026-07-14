@@ -5,6 +5,8 @@ import Place from "../models/Place.js";
 import Tour from "../models/Tour.js";
 import Booking from "../models/Booking.js";
 import Feedback from "../models/Feedback.js";
+import Review from "../models/Review.js";
+import sendEmail from "../utils/sendEmail.js";
 
 const generateAccessToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "15m" });
@@ -231,11 +233,35 @@ export const forgotPassword = async (req, res, next) => {
 
     const resetUrl = `${process.env.USER_CLIENT_URL || "http://localhost:5173"}/reset-password/${resetToken}`;
 
-    console.log("Password Reset URL:", resetUrl);
+    if (process.env.NODE_ENV !== "production") {
+      console.log("Password Reset URL:", resetUrl);
+    }
+
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: "Password Reset Request — Tourist Places Guide",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #1a5f5a;">Password Reset Request</h2>
+            <p>Hello ${user.name},</p>
+            <p>You requested a password reset for your Tourist Places Guide account.</p>
+            <p>Click the button below to reset your password. This link is valid for 15 minutes.</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetUrl}" style="background-color: #1a5f5a; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">Reset Password</a>
+            </div>
+            <p style="color: #666; font-size: 14px;">If you did not request this, you can safely ignore this email.</p>
+            <p style="color: #666; font-size: 14px;">— The Tourist Places Guide Team</p>
+          </div>
+        `,
+      });
+    } catch (emailError) {
+      console.error("Failed to send reset email:", emailError.message);
+      // Still return success to prevent email enumeration
+    }
 
     res.json({
       message: "If the email exists, a reset link has been sent.",
-      resetToken,
     });
   } catch (error) {
     next(error);
@@ -318,6 +344,33 @@ export const getDashboardStats = async (req, res, next) => {
       users,
       pendingBookings,
       recentBookings,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPublicStats = async (req, res, next) => {
+  try {
+    const [totalPlaces, totalBookings, completedBookings, result] = await Promise.all([
+      Place.countDocuments({ status: "published" }),
+      Booking.countDocuments(),
+      Booking.countDocuments({ status: { $in: ["confirmed", "completed"] } }),
+      (await Review.aggregate([
+        { $match: { status: "approved" } },
+        { $group: { _id: null, avgRating: { $avg: "$rating" }, count: { $sum: 1 } } },
+      ])),
+    ]);
+
+    const avgRating = result.length > 0 ? Number(result[0].avgRating.toFixed(1)) : 4.8;
+    const reviewCount = result.length > 0 ? result[0].count : 0;
+
+    res.json({
+      totalPlaces,
+      averageRating: avgRating,
+      totalReviews: reviewCount,
+      totalBookings,
+      happyTravelers: completedBookings,
     });
   } catch (error) {
     next(error);

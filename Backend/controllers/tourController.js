@@ -23,8 +23,8 @@ export const getTours = async (req, res, next) => {
     const skip = (Number(page) - 1) * Number(limit);
 
     let sortObj = { name: 1 };
-    if (sort === "price") sortObj = { price: 1 };
-    if (sort === "price-desc") sortObj = { price: -1 };
+    if (sort === "price") sortObj = { pakistaniPrice: 1 };
+    if (sort === "price-desc") sortObj = { pakistaniPrice: -1 };
     if (sort === "days") sortObj = { days: 1 };
     if (sort === "newest") sortObj = { createdAt: -1 };
 

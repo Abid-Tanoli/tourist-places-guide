@@ -4,6 +4,7 @@ import {
   changePassword,
   forgotPassword,
   getDashboardStats,
+  getPublicStats,
   login,
   logout,
   me,
@@ -48,5 +49,6 @@ router.post("/forgot-password", forgotPassword);
 router.put("/reset-password/:token", resetPassword);
 router.post("/wishlist/:placeId", protect, toggleWishlist);
 router.get("/dashboard-stats", protect, admin, getDashboardStats);
+router.get("/public-stats", getPublicStats);
 
 export default router;

@@ -23,9 +23,12 @@ const createTourValidators = [
   body("days")
     .isInt({ min: 1 })
     .withMessage("Days must be a positive number."),
-  body("price")
+  body("pakistaniPrice")
     .isFloat({ min: 0 })
-    .withMessage("Price must be zero or greater."),
+    .withMessage("Pakistani price must be zero or greater."),
+  body("foreignerPrice")
+    .isFloat({ min: 0 })
+    .withMessage("Foreigner price must be zero or greater."),
   body("discount")
     .optional()
     .isFloat({ min: 0, max: 100 })
@@ -69,10 +72,14 @@ const updateTourValidators = [
     .optional()
     .isInt({ min: 1 })
     .withMessage("Days must be a positive number."),
-  body("price")
+  body("pakistaniPrice")
     .optional()
     .isFloat({ min: 0 })
-    .withMessage("Price must be zero or greater."),
+    .withMessage("Pakistani price must be zero or greater."),
+  body("foreignerPrice")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Foreigner price must be zero or greater."),
   body("discount")
     .optional()
     .isFloat({ min: 0, max: 100 })

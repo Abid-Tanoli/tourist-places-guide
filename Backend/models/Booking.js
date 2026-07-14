@@ -76,6 +76,11 @@ const bookingSchema = new mongoose.Schema(
       adults: { type: Number, default: 1, min: 1 },
       children: { type: Number, default: 0, min: 0 },
     },
+    departure: {
+      departureId: { type: mongoose.Schema.Types.ObjectId },
+      date: { type: Date },
+      time: { type: String, default: "" },
+    },
     payment: paymentSchema,
     date: {
       type: Date,

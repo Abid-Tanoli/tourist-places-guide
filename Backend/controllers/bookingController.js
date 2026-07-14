@@ -1,6 +1,12 @@
 import Booking from "../models/Booking.js";
 import Tour from "../models/Tour.js";
 
+const getVisitorPrice = (tour, userType) => {
+  if (userType === "foreigner" && tour.foreignerPrice) return tour.foreignerPrice;
+  if (tour.pakistaniPrice) return tour.pakistaniPrice;
+  return tour.price || 0;
+};
+
 export const createBooking = async (req, res, next) => {
   try {
     const tour = await Tour.findById(req.body.tour);
@@ -9,9 +15,63 @@ export const createBooking = async (req, res, next) => {
       return res.status(404).json({ message: "Selected tour not found." });
     }
 
+    const visitorType = req.body.userType || "pakistani";
+    const price = getVisitorPrice(tour, visitorType);
+    const adults = Number(req.body.guests?.adults) || 1;
+    const children = Number(req.body.guests?.children) || 0;
+    const totalGuests = adults + children;
+    const totalAmount = price * adults;
+
+    // Validate departure capacity if a departure is selected
+    if (req.body.departure?.departureId) {
+      const departure = tour.departures.id(req.body.departure.departureId);
+      if (!departure) {
+        return res.status(404).json({ message: "Selected departure not found." });
+      }
+      if (departure.status === "cancelled") {
+        return res.status(400).json({ message: "This departure has been cancelled." });
+      }
+      if (departure.status === "full" || (departure.capacity - departure.bookedSeats) < totalGuests) {
+        return res.status(400).json({
+          message: `Not enough seats available. Only ${departure.capacity - departure.bookedSeats} seats remaining for this departure.`,
+        });
+      }
+    } else if (req.body.date) {
+      // Find departure by date
+      const departure = tour.departures.find(
+        (d) => new Date(d.date).toISOString() === new Date(req.body.date).toISOString() && d.status === "active"
+      );
+      if (!departure) {
+        return res.status(404).json({ message: "No active departure found for the selected date." });
+      }
+      if ((departure.capacity - departure.bookedSeats) < totalGuests) {
+        return res.status(400).json({
+          message: `Not enough seats available. Only ${departure.capacity - departure.bookedSeats} seats remaining for this date.`,
+        });
+      }
+      req.body.departure = {
+        departureId: departure._id,
+        date: departure.date,
+        time: departure.time,
+      };
+    } else {
+      // Fallback: check global availableSeats
+      if (tour.availableSeats < totalGuests) {
+        return res.status(400).json({
+          message: `Not enough seats available. Only ${tour.availableSeats} seats remaining.`,
+        });
+      }
+    }
+
     const bookingData = {
       ...req.body,
       selectedTour: req.body.selectedTour || tour.name,
+      payment: {
+        amount: totalAmount,
+        currency: "PKR",
+        method: req.body.paymentMethod || "cod",
+        status: "pending",
+      },
     };
 
     if (req.user) {

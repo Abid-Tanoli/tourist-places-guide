@@ -26,13 +26,19 @@ const tourStopSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const scheduleSchema = new mongoose.Schema(
+const departureSchema = new mongoose.Schema(
   {
     date: { type: Date, required: true },
     time: { type: String, default: "" },
-    available: { type: Boolean, default: true },
+    capacity: { type: Number, required: true, min: 1 },
+    bookedSeats: { type: Number, default: 0, min: 0 },
+    status: {
+      type: String,
+      enum: ["active", "cancelled", "full"],
+      default: "active",
+    },
   },
-  { _id: false }
+  { _id: true }
 );
 
 const tourSchema = new mongoose.Schema(
@@ -70,7 +76,14 @@ const tourSchema = new mongoose.Schema(
     },
     price: {
       type: Number,
-      required: true,
+      min: 0,
+    },
+    pakistaniPrice: {
+      type: Number,
+      min: 0,
+    },
+    foreignerPrice: {
+      type: Number,
       min: 0,
     },
     discount: {
@@ -100,7 +113,7 @@ const tourSchema = new mongoose.Schema(
         message: "Tour route must contain at least one place.",
       },
     },
-    schedule: [scheduleSchema],
+    departures: [departureSchema],
     capacity: {
       type: Number,
       min: 1,
@@ -141,6 +154,14 @@ const tourSchema = new mongoose.Schema(
 tourSchema.index({ name: "text", description: "text" });
 tourSchema.index({ slug: 1 });
 tourSchema.index({ status: 1, featured: 1 });
+
+// Virtual for departure remaining seats
+departureSchema.virtual("remainingSeats").get(function () {
+  return this.capacity - this.bookedSeats;
+});
+
+departureSchema.set("toJSON", { virtuals: true });
+departureSchema.set("toObject", { virtuals: true });
 
 const Tour = mongoose.model("Tour", tourSchema);
 

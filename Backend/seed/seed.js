@@ -25,6 +25,24 @@ const toSlug = (text) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+const generateDepartures = (capacity) => {
+  const departures = [];
+  const today = new Date();
+  // Generate departures for the next 30 days, with 2-3 per week
+  for (let i = 3; i <= 30; i += Math.floor(Math.random() * 3) + 2) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    departures.push({
+      date,
+      time: ["08:00", "09:00", "10:00"][Math.floor(Math.random() * 3)],
+      capacity,
+      bookedSeats: Math.floor(Math.random() * Math.min(5, capacity)),
+      status: "active",
+    });
+  }
+  return departures;
+};
+
 const importData = async () => {
   try {
     await connectDB();
@@ -144,7 +162,8 @@ const importData = async () => {
       description: tour.description,
       shortDescription: tour.shortDescription || tour.description?.substring(0, 150) + "...",
       days: tour.days,
-      price: tour.price,
+      pakistaniPrice: tour.pakistaniPrice,
+      foreignerPrice: tour.foreignerPrice,
       discount: tour.discount || 0,
       included: tour.included || [
         "Hotel accommodation",
@@ -166,7 +185,7 @@ const importData = async () => {
           description: stop.description || "",
         }))
         .filter((stop) => stop.place),
-      schedule: [],
+      departures: generateDepartures(tour.capacity || 20),
       capacity: tour.capacity || 20,
       availableSeats: tour.availableSeats ?? tour.capacity ?? 20,
       status: "published",

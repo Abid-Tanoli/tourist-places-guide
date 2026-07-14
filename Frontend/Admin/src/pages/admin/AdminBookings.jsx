@@ -37,6 +37,24 @@ const AdminBookings = () => {
     }
   };
 
+  const handleConfirmManualPayment = async (id) => {
+    try {
+      setStatusUpdating(id);
+      await api.post("/payment/confirm-manual", { bookingId: id });
+      setBookings((prev) =>
+        prev.map((b) => (b._id === id ? {
+          ...b,
+          status: "confirmed",
+          payment: { ...b.payment, status: "completed", paidAt: new Date().toISOString() },
+        } : b))
+      );
+    } catch (requestError) {
+      setError(getApiError(requestError, "Unable to confirm payment."));
+    } finally {
+      setStatusUpdating("");
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this booking?")) return;
     try {
@@ -111,6 +129,11 @@ const AdminBookings = () => {
                           ? `PKR ${booking.payment.amount.toLocaleString()}`
                           : <span className="text-gray-400">-</span>
                         }
+                        {booking.payment?.method && (
+                          <span className="block text-xs text-gray-500 capitalize">
+                            {booking.payment.method === "cod" ? "Cash on Arrival" : booking.payment.method}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -126,10 +149,19 @@ const AdminBookings = () => {
                         >
                           {statusVal}
                         </span>
+                        {booking.payment?.status && (
+                          <span className={`ml-1 inline-block rounded-full px-1.5 py-0.5 text-xs ${
+                            booking.payment.status === "completed"
+                              ? "bg-green-50 text-green-700"
+                              : "bg-gray-100 text-gray-600"
+                          }`}>
+                            {booking.payment.status}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-2">
-                          {statusVal !== "confirmed" && (
+                          {statusVal !== "confirmed" && statusVal !== "cancelled" && (
                             <button
                               onClick={() => handleStatusUpdate(booking._id, "confirmed")}
                               disabled={statusUpdating === booking._id}
@@ -145,6 +177,24 @@ const AdminBookings = () => {
                               className="px-3 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 text-xs"
                             >
                               Complete
+                            </button>
+                          )}
+                          {booking.payment?.method === "easypaisa" && booking.payment?.status === "pending" && (
+                            <button
+                              onClick={() => handleConfirmManualPayment(booking._id)}
+                              disabled={statusUpdating === booking._id}
+                              className="px-3 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-gray-400 text-xs"
+                            >
+                              Mark Paid
+                            </button>
+                          )}
+                          {booking.payment?.method === "jazzcash" && booking.payment?.status === "pending" && (
+                            <button
+                              onClick={() => handleConfirmManualPayment(booking._id)}
+                              disabled={statusUpdating === booking._id}
+                              className="px-3 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-gray-400 text-xs"
+                            >
+                              Mark Paid
                             </button>
                           )}
                           {statusVal !== "cancelled" && (

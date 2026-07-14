@@ -9,6 +9,37 @@ try {
   stripe = null;
 }
 
+const getVisitorPrice = (tour, userType) => {
+  if (userType === "foreigner" && tour.foreignerPrice) return tour.foreignerPrice;
+  if (tour.pakistaniPrice) return tour.pakistaniPrice;
+  return tour.price || 0;
+};
+
+const decrementSeats = async (tourId, booking) => {
+  const totalGuests = (booking.guests?.adults || 1) + (booking.guests?.children || 0);
+  
+  // Try to decrement departure-specific seats first
+  if (booking.departure?.departureId) {
+    const tour = await Tour.findById(tourId);
+    if (tour) {
+      const departure = tour.departures.id(booking.departure.departureId);
+      if (departure) {
+        departure.bookedSeats = Math.min(departure.bookedSeats + totalGuests, departure.capacity);
+        if (departure.bookedSeats >= departure.capacity) {
+          departure.status = "full";
+        }
+        await tour.save();
+        return;
+      }
+    }
+  }
+  
+  // Fallback to global availableSeats
+  await Tour.findByIdAndUpdate(tourId, {
+    $inc: { availableSeats: -totalGuests },
+  });
+};
+
 export const createPaymentIntent = async (req, res, next) => {
   try {
     const { bookingId } = req.body;
@@ -28,7 +59,7 @@ export const createPaymentIntent = async (req, res, next) => {
 
     const tour = booking.tour;
     const visitorType = booking.userType || "pakistani";
-    const price = visitorType === "foreigner" ? tour.foreignerPrice : tour.pakistaniPrice;
+    const price = getVisitorPrice(tour, visitorType);
     const totalAmount = price * (booking.guests?.adults || 1);
     const amountInCents = Math.round(totalAmount * 100);
 
@@ -90,15 +121,89 @@ export const confirmPayment = async (req, res, next) => {
       }
 
       if (booking.tour) {
-        await Tour.findByIdAndUpdate(booking.tour._id, {
-          $inc: { availableSeats: -(booking.guests?.adults || 1) },
-        });
+        await decrementSeats(booking.tour._id, booking);
       }
 
       return res.json({ message: "Payment confirmed.", booking });
     }
 
     res.status(400).json({ message: "Payment not yet successful.", status: paymentIntent.status });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const confirmCodBooking = async (req, res, next) => {
+  try {
+    const { bookingId } = req.body;
+
+    const booking = await Booking.findById(bookingId).populate("tour");
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found." });
+    }
+
+    if (booking.payment?.status === "completed") {
+      return res.status(400).json({ message: "Booking already confirmed." });
+    }
+
+    const tour = booking.tour;
+    const visitorType = booking.userType || "pakistani";
+    const price = getVisitorPrice(tour, visitorType);
+    const totalAmount = price * (booking.guests?.adults || 1);
+
+    booking.payment = {
+      amount: totalAmount,
+      currency: "PKR",
+      method: "cod",
+      status: "pending",
+      paidAt: undefined,
+    };
+    booking.status = "confirmed";
+    await booking.save();
+
+    if (tour) {
+      await decrementSeats(tour._id, booking);
+    }
+
+    res.json({ message: "Booking confirmed. Payment will be collected on arrival.", booking });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const confirmManualPayment = async (req, res, next) => {
+  try {
+    const { bookingId } = req.body;
+
+    const booking = await Booking.findById(bookingId).populate("tour");
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found." });
+    }
+
+    if (booking.payment?.status === "completed") {
+      return res.status(400).json({ message: "Booking already confirmed." });
+    }
+
+    const tour = booking.tour;
+    const visitorType = booking.userType || "pakistani";
+    const price = getVisitorPrice(tour, visitorType);
+    const totalAmount = price * (booking.guests?.adults || 1);
+
+    booking.payment = {
+      ...booking.payment,
+      amount: totalAmount,
+      currency: "PKR",
+      status: "completed",
+      paidAt: new Date(),
+    };
+    booking.status = "confirmed";
+    await booking.save();
+
+    if (tour) {
+      await decrementSeats(tour._id, booking);
+    }
+
+    res.json({ message: "Payment confirmed manually.", booking });
   } catch (error) {
     next(error);
   }
@@ -134,9 +239,7 @@ export const handleStripeWebhook = async (req, res) => {
     );
 
     if (booking?.tour) {
-      await Tour.findByIdAndUpdate(booking.tour, {
-        $inc: { availableSeats: -(booking.guests?.adults || 1) },
-      });
+      await decrementSeats(booking.tour, booking);
     }
   }
 
@@ -153,24 +256,26 @@ export const initiateEasypaisaPayment = async (req, res, next) => {
     }
 
     const tour = booking.tour;
-    const price = booking.userType === "foreigner" ? tour.foreignerPrice : tour.pakistaniPrice;
+    const visitorType = booking.userType || "pakistani";
+    const price = getVisitorPrice(tour, visitorType);
     const totalAmount = price * (booking.guests?.adults || 1);
 
     booking.payment = {
-      ...booking.payment,
       amount: totalAmount,
       currency: "PKR",
       method: "easypaisa",
       status: "pending",
     };
+    booking.status = "pending";
     await booking.save();
 
     res.json({
-      message: "EasyPaisa payment initiated. Please complete on your phone.",
+      message: "EasyPaisa payment initiated. Our team will verify your transaction and confirm your booking.",
       bookingId: booking._id,
       amount: totalAmount,
       phone: phone || booking.phone,
-      instructions: "Dial *786# on your EasyPaisa mobile to complete payment.",
+      instructions: "Please send the payment via EasyPaisa to the provided number. Our admin will verify and confirm your booking manually.",
+      note: "This is a manual verification process. Your booking will be confirmed once our team verifies the payment.",
     });
   } catch (error) {
     next(error);
@@ -187,24 +292,26 @@ export const initiateJazzCashPayment = async (req, res, next) => {
     }
 
     const tour = booking.tour;
-    const price = booking.userType === "foreigner" ? tour.foreignerPrice : tour.pakistaniPrice;
+    const visitorType = booking.userType || "pakistani";
+    const price = getVisitorPrice(tour, visitorType);
     const totalAmount = price * (booking.guests?.adults || 1);
 
     booking.payment = {
-      ...booking.payment,
       amount: totalAmount,
       currency: "PKR",
       method: "jazzcash",
       status: "pending",
     };
+    booking.status = "pending";
     await booking.save();
 
     res.json({
-      message: "JazzCash payment initiated. Please complete on your phone.",
+      message: "JazzCash payment initiated. Our team will verify your transaction and confirm your booking.",
       bookingId: booking._id,
       amount: totalAmount,
       phone: phone || booking.phone,
-      instructions: "Dial *786# on your JazzCash mobile to complete payment.",
+      instructions: "Please send the payment via JazzCash to the provided number. Our admin will verify and confirm your booking manually.",
+      note: "This is a manual verification process. Your booking will be confirmed once our team verifies the payment.",
     });
   } catch (error) {
     next(error);

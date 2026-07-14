@@ -64,7 +64,7 @@ const getGalleryImages = (tour) => {
 };
 
 const getDiscountedPrice = (tour) => {
-  const price = Number(tour?.price || 0);
+  const price = Number(tour?.pakistaniPrice || tour?.price || 0);
   const discount = Number(tour?.discount || 0);
   return discount > 0 ? Math.round(price * (1 - discount / 100)) : price;
 };
@@ -225,28 +225,28 @@ const Tours = () => {
 
     return (
       <Dialog open={Boolean(detailTour)} onOpenChange={(open) => !open && setDetailTour(null)}>
-        <DialogContent className="max-h-[92vh] max-w-6xl overflow-y-auto p-0">
+        <DialogContent className="max-h-[95vh] max-w-6xl overflow-y-auto p-0 sm:max-h-[92vh]">
           <DialogHeader className="sr-only">
             <DialogTitle>{detailTour.name}</DialogTitle>
             <DialogDescription>{detailTour.shortDescription || detailTour.description}</DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px]">
+          <div className="flex flex-col lg:grid lg:grid-cols-[1fr_340px]">
             <div className="min-w-0">
               <Carousel className="relative">
                 <CarouselContent>
                   {gallery.map((image, index) => (
                     <CarouselItem key={`${image}-${index}`}>
-                      <div className="relative h-72 sm:h-96">
+                      <div className="relative h-56 sm:h-72 md:h-96">
                         <img src={image} alt={`${detailTour.name} ${index + 1}`} className="h-full w-full object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                        <div className="absolute bottom-5 left-5 right-5 text-white">
-                          <div className="mb-3 flex flex-wrap gap-2">
+                        <div className="absolute bottom-4 left-4 right-4 text-white sm:bottom-5 sm:left-5 sm:right-5">
+                          <div className="mb-2 flex flex-wrap gap-1.5 sm:mb-3 sm:gap-2">
                             {detailTour.featured && <Badge className="border-0 bg-primary text-white">Featured</Badge>}
                             {hasDiscount && <Badge className="border-0 bg-terracotta-500 text-white">{detailTour.discount}% off</Badge>}
                             <Badge className="border-0 bg-white/20 text-white backdrop-blur-sm">{detailTour.location || "Pakistan"}</Badge>
                           </div>
-                          <h2 className="font-heading text-3xl font-bold sm:text-5xl">{detailTour.name}</h2>
+                          <h2 className="font-heading text-2xl font-bold sm:text-3xl md:text-5xl">{detailTour.name}</h2>
                         </div>
                       </div>
                     </CarouselItem>
@@ -254,58 +254,58 @@ const Tours = () => {
                 </CarouselContent>
                 {gallery.length > 1 && (
                   <>
-                    <CarouselPrevious className="left-4" />
-                    <CarouselNext className="right-4" />
+                    <CarouselPrevious className="left-2 size-8 sm:left-4 sm:size-10" />
+                    <CarouselNext className="right-2 size-8 sm:right-4 sm:size-10" />
                   </>
                 )}
               </Carousel>
 
-              <div className="space-y-8 p-5 sm:p-8">
+              <div className="space-y-6 p-4 sm:space-y-8 sm:p-6 md:p-8">
                 <div>
-                  <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
+                  <p className="text-sm leading-relaxed text-muted-foreground sm:text-base md:text-lg">
                     {detailTour.shortDescription || detailTour.description}
                   </p>
-                  <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div className="rounded-lg border bg-white p-3">
-                      <Clock className="mb-2 size-4 text-primary" />
+                  <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3 md:grid-cols-4">
+                    <div className="rounded-lg border bg-white p-2.5 sm:p-3">
+                      <Clock className="mb-1.5 size-4 text-primary sm:mb-2" />
                       <p className="text-xs text-muted-foreground">Duration</p>
-                      <p className="font-semibold">{detailTour.days} days</p>
+                      <p className="text-sm font-semibold sm:text-base">{detailTour.days} days</p>
                     </div>
-                    <div className="rounded-lg border bg-white p-3">
-                      <Route className="mb-2 size-4 text-primary" />
+                    <div className="rounded-lg border bg-white p-2.5 sm:p-3">
+                      <Route className="mb-1.5 size-4 text-primary sm:mb-2" />
                       <p className="text-xs text-muted-foreground">Route</p>
-                      <p className="font-semibold">{detailTour.route?.length || 0} stops</p>
+                      <p className="text-sm font-semibold sm:text-base">{detailTour.route?.length || 0} stops</p>
                     </div>
-                    <div className="rounded-lg border bg-white p-3">
-                      <Users className="mb-2 size-4 text-primary" />
+                    <div className="rounded-lg border bg-white p-2.5 sm:p-3">
+                      <Users className="mb-1.5 size-4 text-primary sm:mb-2" />
                       <p className="text-xs text-muted-foreground">Seats</p>
-                      <p className="font-semibold">{detailTour.availableSeats ?? detailTour.capacity} left</p>
+                      <p className="text-sm font-semibold sm:text-base">{detailTour.availableSeats ?? detailTour.capacity} left</p>
                     </div>
-                    <div className="rounded-lg border bg-white p-3">
-                      <CalendarDays className="mb-2 size-4 text-primary" />
+                    <div className="rounded-lg border bg-white p-2.5 sm:p-3">
+                      <CalendarDays className="mb-1.5 size-4 text-primary sm:mb-2" />
                       <p className="text-xs text-muted-foreground">Capacity</p>
-                      <p className="font-semibold">{detailTour.capacity || 20} guests</p>
+                      <p className="text-sm font-semibold sm:text-base">{detailTour.capacity || 20} guests</p>
                     </div>
                   </div>
                 </div>
 
                 {routeDays.length > 0 && (
                   <section>
-                    <h3 className="font-heading mb-4 text-2xl font-bold">Day-by-Day Route</h3>
-                    <Accordion type="single" collapsible defaultValue={`day-${routeDays[0][0]}`} className="rounded-lg border bg-white px-4">
+                    <h3 className="font-heading mb-3 text-xl font-bold sm:mb-4 sm:text-2xl">Day-by-Day Route</h3>
+                    <Accordion type="single" collapsible defaultValue={`day-${routeDays[0][0]}`} className="rounded-lg border bg-white px-3 sm:px-4">
                       {routeDays.map(([day, stops]) => (
                         <AccordionItem key={day} value={`day-${day}`}>
-                          <AccordionTrigger>Day {day}: {stops.map((stop) => stop.place?.name).filter(Boolean).join(" to ")}</AccordionTrigger>
+                          <AccordionTrigger className="text-sm sm:text-base">Day {day}: <span className="truncate ml-1">{stops.map((stop) => stop.place?.name).filter(Boolean).join(" to ")}</span></AccordionTrigger>
                           <AccordionContent>
-                            <div className="space-y-3 pt-1">
+                            <div className="space-y-2.5 pt-1 sm:space-y-3">
                               {stops.map((stop, index) => (
-                                <div key={`${day}-${index}`} className="flex gap-3">
-                                  <div className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                                <div key={`${day}-${index}`} className="flex gap-2.5 sm:gap-3">
+                                  <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground sm:mt-1 sm:size-7">
                                     {index + 1}
                                   </div>
-                                  <div>
-                                    <p className="font-medium text-foreground">{stop.place?.name || `Stop ${index + 1}`}</p>
-                                    <p className="text-sm text-muted-foreground">
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-medium text-foreground sm:text-base">{stop.place?.name || `Stop ${index + 1}`}</p>
+                                    <p className="text-xs text-muted-foreground sm:text-sm">
                                       {stop.description || stop.place?.region || "Guided sightseeing and transfer time included."}
                                     </p>
                                   </div>
@@ -319,20 +319,20 @@ const Tours = () => {
                   </section>
                 )}
 
-                <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="rounded-lg border bg-white p-5">
-                    <h3 className="mb-4 flex items-center gap-2 font-semibold"><CheckCircle2 className="size-5 text-primary" /> Included</h3>
-                    <ul className="space-y-2 text-sm text-muted-foreground">
+                <section className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
+                  <div className="rounded-lg border bg-white p-3.5 sm:p-5">
+                    <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold sm:mb-4 sm:text-base"><CheckCircle2 className="size-4 text-primary sm:size-5" /> Included</h3>
+                    <ul className="space-y-1.5 text-xs text-muted-foreground sm:space-y-2 sm:text-sm">
                       {(detailTour.included || []).map((item) => (
-                        <li key={item} className="flex gap-2"><CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" /> {item}</li>
+                        <li key={item} className="flex gap-1.5 sm:gap-2"><CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-primary sm:size-4" /> {item}</li>
                       ))}
                     </ul>
                   </div>
-                  <div className="rounded-lg border bg-white p-5">
-                    <h3 className="mb-4 flex items-center gap-2 font-semibold"><XCircle className="size-5 text-terracotta-500" /> Excluded</h3>
-                    <ul className="space-y-2 text-sm text-muted-foreground">
+                  <div className="rounded-lg border bg-white p-3.5 sm:p-5">
+                    <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold sm:mb-4 sm:text-base"><XCircle className="size-4 text-terracotta-500 sm:size-5" /> Excluded</h3>
+                    <ul className="space-y-1.5 text-xs text-muted-foreground sm:space-y-2 sm:text-sm">
                       {(detailTour.excluded || []).map((item) => (
-                        <li key={item} className="flex gap-2"><XCircle className="mt-0.5 size-4 shrink-0 text-terracotta-500" /> {item}</li>
+                        <li key={item} className="flex gap-1.5 sm:gap-2"><XCircle className="mt-0.5 size-3.5 shrink-0 text-terracotta-500 sm:size-4" /> {item}</li>
                       ))}
                     </ul>
                   </div>
@@ -340,36 +340,41 @@ const Tours = () => {
 
                 {routePlaces.length > 0 && (
                   <section>
-                    <h3 className="font-heading mb-4 text-2xl font-bold">Route Map</h3>
+                    <h3 className="font-heading mb-3 text-xl font-bold sm:mb-4 sm:text-2xl">Route Map</h3>
                     <div className="overflow-hidden rounded-lg border bg-white">
-                      <TourMap route={routePlaces} />
+                      <TourMap route={routePlaces} tourRoute={detailTour.route} />
                     </div>
                   </section>
                 )}
               </div>
             </div>
 
-            <aside className="border-t bg-white p-5 lg:border-l lg:border-t-0">
-              <div className="sticky top-4 space-y-5">
+            <aside className="border-t bg-white p-4 sm:p-5 lg:border-l lg:border-t-0">
+              <div className="space-y-4 sm:sticky sm:top-4 sm:space-y-5">
                 <div>
-                  <p className="text-sm text-muted-foreground">From</p>
+                  <p className="text-xs text-muted-foreground sm:text-sm">From</p>
                   <div className="flex flex-wrap items-end gap-2">
-                    <span className="text-3xl font-bold text-primary">{formatPKR(salePrice)}</span>
-                    {hasDiscount && <span className="pb-1 text-sm text-muted-foreground line-through">{formatPKR(detailTour.price)}</span>}
+                    <span className="text-2xl font-bold text-primary sm:text-3xl">{formatPKR(salePrice)}</span>
+                    {hasDiscount && <span className="pb-0.5 text-xs text-muted-foreground line-through sm:pb-1 sm:text-sm">{formatPKR(detailTour.pakistaniPrice || detailTour.price)}</span>}
                   </div>
-                  <p className="text-xs text-muted-foreground">per person</p>
+                  <p className="text-xs text-muted-foreground">
+                    per person (Pakistani)
+                    {detailTour.foreignerPrice && (
+                      <span className="block mt-0.5">~${Math.round(detailTour.foreignerPrice / 280)} USD for international visitors</span>
+                    )}
+                  </p>
                 </div>
 
                 <Separator />
 
-                <div className="space-y-3 text-sm">
+                <div className="space-y-2 text-xs sm:space-y-3 sm:text-sm">
                   <div className="flex justify-between gap-4"><span className="text-muted-foreground">Duration</span><span className="font-medium">{detailTour.days} days</span></div>
                   <div className="flex justify-between gap-4"><span className="text-muted-foreground">Seats available</span><span className="font-medium">{detailTour.availableSeats ?? detailTour.capacity}</span></div>
                   <div className="flex justify-between gap-4"><span className="text-muted-foreground">Region</span><span className="font-medium text-right">{detailTour.location || "Pakistan"}</span></div>
                 </div>
 
-                <div className="rounded-lg bg-primary/5 p-4 text-sm text-muted-foreground">
-                  <div className="mb-2 flex items-center gap-2 font-medium text-foreground"><Info className="size-4 text-primary" /> Booking note</div>
+                <div className="rounded-lg bg-primary/5 p-3 text-xs text-muted-foreground sm:p-4 sm:text-sm">
+                  <div className="mb-1.5 flex items-center gap-2 font-medium text-foreground sm:mb-2"><Info className="size-3.5 text-primary sm:size-4" /> Booking note</div>
                   Reserve now and our team will confirm schedule, pickup details, and payment status.
                 </div>
 
@@ -564,12 +569,17 @@ const Tours = () => {
                           {discountedPrice ? (
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-xl font-bold text-primary">{formatPKR(discountedPrice)}</span>
-                              <span className="text-sm text-muted-foreground line-through">{formatPKR(tour.price)}</span>
+                              <span className="text-sm text-muted-foreground line-through">{formatPKR(tour.pakistaniPrice || tour.price)}</span>
                             </div>
                           ) : (
-                            <span className="text-xl font-bold text-primary">{formatPKR(tour.price)}</span>
+                            <span className="text-xl font-bold text-primary">{formatPKR(tour.pakistaniPrice || tour.price)}</span>
                           )}
-                          <p className="text-xs text-muted-foreground">per person</p>
+                          <p className="text-xs text-muted-foreground">
+                            per person
+                            {tour.foreignerPrice && (
+                              <span className="ml-1">| ~${Math.round(tour.foreignerPrice / 280)} USD</span>
+                            )}
+                          </p>
                         </div>
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline" onClick={() => setDetailTour(tour)}>

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import api from "../api/axios";
+import api, { setAuthToken } from "../api/axios";
 
 const AuthContext = createContext(null);
 
@@ -13,19 +13,23 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchUser = useCallback(async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setLoading(false);
-      return;
-    }
     try {
-      const { data } = await api.get("/auth/me");
+      // Try refresh token via httpOnly cookie first
+      const { data } = await api.post(
+        `${import.meta.env.VITE_API_URL || "http://localhost:3000/api"}/auth/refresh-token`,
+        {},
+        { withCredentials: true }
+      );
+      setToken(data.token);
+      setAuthToken(data.token);
       setUser(data.user);
     } catch {
-      localStorage.removeItem("token");
+      setToken(null);
+      setAuthToken(null);
       setUser(null);
     } finally {
       setLoading(false);
@@ -38,14 +42,16 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const { data } = await api.post("/auth/login", { email, password });
-    localStorage.setItem("token", data.token);
+    setToken(data.token);
+    setAuthToken(data.token);
     setUser(data.user);
     return data;
   };
 
   const register = async (name, email, password) => {
     const { data } = await api.post("/auth/register", { name, email, password });
-    localStorage.setItem("token", data.token);
+    setToken(data.token);
+    setAuthToken(data.token);
     setUser(data.user);
     return data;
   };
@@ -56,7 +62,8 @@ export const AuthProvider = ({ children }) => {
     } catch {
       // ignore
     }
-    localStorage.removeItem("token");
+    setToken(null);
+    setAuthToken(null);
     setUser(null);
   };
 
@@ -74,6 +81,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    token,
     loading,
     login,
     register,

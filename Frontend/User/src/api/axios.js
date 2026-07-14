@@ -4,10 +4,23 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api",
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+// In-memory token store (not persisted to localStorage)
+let accessToken = null;
+
+export const setAuthToken = (token) => {
+  accessToken = token;
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    api.defaults.headers.common.Authorization = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common.Authorization;
+  }
+};
+
+export const getAuthToken = () => accessToken;
+
+api.interceptors.request.use((config) => {
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
   return config;
 });
@@ -30,6 +43,12 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const isRefreshRequest = originalRequest.url?.includes("/auth/refresh-token");
+
+    if (isRefreshRequest) {
+      setAuthToken(null);
+      return Promise.reject(error);
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
@@ -50,14 +69,13 @@ api.interceptors.response.use(
           {},
           { withCredentials: true }
         );
-        localStorage.setItem("token", data.token);
-        api.defaults.headers.common.Authorization = `Bearer ${data.token}`;
+        setAuthToken(data.token);
         processQueue(null, data.token);
         originalRequest.headers.Authorization = `Bearer ${data.token}`;
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.removeItem("token");
+        setAuthToken(null);
         window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {

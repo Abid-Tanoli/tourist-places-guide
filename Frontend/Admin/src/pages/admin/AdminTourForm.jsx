@@ -9,7 +9,8 @@ const emptyTour = {
   shortDescription: "",
   description: "",
   days: "",
-  price: "",
+  pakistaniPrice: "",
+  foreignerPrice: "",
   discount: "",
   capacity: "",
   included: "",
@@ -19,6 +20,7 @@ const emptyTour = {
   status: "published",
   featured: false,
   route: [],
+  departures: [],
 };
 
 const AdminTourForm = () => {
@@ -52,7 +54,8 @@ const AdminTourForm = () => {
             shortDescription: tour.shortDescription || "",
             description: tour.description || "",
             days: tour.days || "",
-            price: tour.price ?? "",
+            pakistaniPrice: tour.pakistaniPrice ?? "",
+            foreignerPrice: tour.foreignerPrice ?? "",
             discount: tour.discount ?? "",
             capacity: tour.capacity || "",
             included: (tour.included || []).join("\n"),
@@ -66,6 +69,11 @@ const AdminTourForm = () => {
               day: stop.day || 1,
               order: stop.order || 1,
               description: stop.description || "",
+            })),
+            departures: (tour.departures || []).map((dep) => ({
+              date: dep.date ? new Date(dep.date).toISOString().split("T")[0] : "",
+              time: dep.time || "",
+              capacity: dep.capacity || 20,
             })),
           });
         }
@@ -132,6 +140,31 @@ const AdminTourForm = () => {
     }));
   };
 
+  const handleDepartureChange = (index, field, value) => {
+    setForm((prev) => {
+      const newDepartures = [...prev.departures];
+      newDepartures[index] = { ...newDepartures[index], [field]: value };
+      return { ...prev, departures: newDepartures };
+    });
+  };
+
+  const addDeparture = () => {
+    setForm((prev) => ({
+      ...prev,
+      departures: [
+        ...prev.departures,
+        { date: "", time: "", capacity: Number(prev.capacity) || 20 },
+      ],
+    }));
+  };
+
+  const removeDeparture = (index) => {
+    setForm((prev) => ({
+      ...prev,
+      departures: prev.departures.filter((_, i) => i !== index),
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const payload = {
@@ -140,7 +173,8 @@ const AdminTourForm = () => {
       shortDescription: form.shortDescription,
       description: form.description,
       days: Number(form.days),
-      price: Number(form.price),
+      pakistaniPrice: Number(form.pakistaniPrice),
+      foreignerPrice: Number(form.foreignerPrice),
       discount: Number(form.discount) || 0,
       capacity: Number(form.capacity) || 20,
       availableSeats: Number(form.capacity) || 20,
@@ -161,6 +195,15 @@ const AdminTourForm = () => {
           day: Number(stop.day) || i + 1,
           order: Number(stop.order) || i + 1,
           description: stop.description,
+        })),
+      departures: form.departures
+        .filter((dep) => dep.date)
+        .map((dep) => ({
+          date: dep.date,
+          time: dep.time || "",
+          capacity: Number(dep.capacity) || Number(form.capacity) || 20,
+          bookedSeats: 0,
+          status: "active",
         })),
     };
 
@@ -224,8 +267,12 @@ const AdminTourForm = () => {
               <input name="days" type="number" min="1" value={form.days} onChange={handleChange} className="w-full border rounded-md px-3 py-2" required />
             </label>
             <label className="block">
-              <span className="block text-sm font-medium text-gray-700 mb-1">Price (PKR) *</span>
-              <input name="price" type="number" min="0" value={form.price} onChange={handleChange} className="w-full border rounded-md px-3 py-2" required />
+              <span className="block text-sm font-medium text-gray-700 mb-1">Pakistani Price (PKR) *</span>
+              <input name="pakistaniPrice" type="number" min="0" value={form.pakistaniPrice} onChange={handleChange} className="w-full border rounded-md px-3 py-2" required />
+            </label>
+            <label className="block">
+              <span className="block text-sm font-medium text-gray-700 mb-1">Foreigner Price (PKR) *</span>
+              <input name="foreignerPrice" type="number" min="0" value={form.foreignerPrice} onChange={handleChange} className="w-full border rounded-md px-3 py-2" required />
             </label>
             <label className="block">
               <span className="block text-sm font-medium text-gray-700 mb-1">Discount (%)</span>
@@ -311,6 +358,41 @@ const AdminTourForm = () => {
               </div>
               <div className="col-span-1 flex justify-center">
                 <button type="button" onClick={() => removeRouteStop(index)} className="text-red-500 hover:text-red-700 text-lg">&times;</button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Departures */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">Scheduled Departures</h2>
+              <p className="text-xs text-gray-500">Add specific departure dates with independent capacity. Users will select a departure when booking.</p>
+            </div>
+            <button type="button" onClick={addDeparture} className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
+              + Add Departure
+            </button>
+          </div>
+          {form.departures.length === 0 && (
+            <p className="text-sm text-gray-500">No departures scheduled. Tours without departures will use the global capacity.</p>
+          )}
+          {form.departures.map((dep, index) => (
+            <div key={index} className="grid grid-cols-12 gap-2 mb-2 items-end">
+              <div className="col-span-4">
+                <label className="block text-xs font-medium text-gray-600">Date *</label>
+                <input type="date" value={dep.date} onChange={(e) => handleDepartureChange(index, "date", e.target.value)} className="w-full border rounded px-2 py-1 text-sm" required />
+              </div>
+              <div className="col-span-3">
+                <label className="block text-xs font-medium text-gray-600">Time</label>
+                <input type="time" value={dep.time} onChange={(e) => handleDepartureChange(index, "time", e.target.value)} className="w-full border rounded px-2 py-1 text-sm" />
+              </div>
+              <div className="col-span-3">
+                <label className="block text-xs font-medium text-gray-600">Capacity</label>
+                <input type="number" min="1" value={dep.capacity} onChange={(e) => handleDepartureChange(index, "capacity", e.target.value)} className="w-full border rounded px-2 py-1 text-sm" />
+              </div>
+              <div className="col-span-2 flex justify-center">
+                <button type="button" onClick={() => removeDeparture(index)} className="text-red-500 hover:text-red-700 text-lg">&times;</button>
               </div>
             </div>
           ))}

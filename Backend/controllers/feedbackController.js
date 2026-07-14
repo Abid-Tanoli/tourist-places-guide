@@ -35,12 +35,28 @@ export const getFeedback = async (req, res, next) => {
       }
     }
 
-    const query = Feedback.find({}).sort({ createdAt: -1 });
+    const { featured, status, limit } = req.query;
+    const query = {};
+
     if (!isAdmin) {
-      query.select("-email");
+      query.status = "approved";
+    } else if (status) {
+      query.status = status;
     }
 
-    const feedback = await query;
+    if (featured === "true") {
+      query.featured = true;
+    }
+
+    let feedbackQuery = Feedback.find(query).sort({ createdAt: -1 });
+    if (limit) {
+      feedbackQuery = feedbackQuery.limit(Number(limit));
+    }
+    if (!isAdmin) {
+      feedbackQuery = feedbackQuery.select("-email");
+    }
+
+    const feedback = await feedbackQuery;
     res.json(feedback);
   } catch (error) {
     next(error);

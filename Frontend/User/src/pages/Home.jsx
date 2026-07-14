@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Link, useOutletContext } from "react-router-dom";
+import { Link, useNavigate, useOutletContext } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
 import HeroSlider from "../components/HeroSlider";
 import api from "../api/axios";
 import {
@@ -14,31 +13,15 @@ import {
   Compass,
   MapPin,
   Mountain,
-  Search,
   Shield,
   Star,
   Users,
 } from "lucide-react";
 
-const regions = [
-  { name: "Gilgit-Baltistan", image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80", count: "12+ places" },
-  { name: "Khyber Pakhtunkhwa", image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=600&q=80", count: "8+ places" },
-  { name: "Azad Kashmir", image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80", count: "6+ places" },
-  { name: "Punjab", image: "https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=600&q=80", count: "10+ places" },
-  { name: "Balochistan", image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80", count: "7+ places" },
-  { name: "Sindh", image: "https://images.unsplash.com/photo-1587474260584-136574528ed5?w=600&q=80", count: "5+ places" },
-];
-
 const features = [
   { icon: Shield, title: "Verified Tours", desc: "All tours verified for quality and safety" },
   { icon: Users, title: "Expert Guides", desc: "Local guides with deep knowledge" },
   { icon: Compass, title: "Custom Trips", desc: "Tailored to your preferences" },
-];
-
-const testimonials = [
-  { name: "Sarah Ahmed", country: "United Kingdom", text: "An incredible experience. The northern areas of Pakistan are truly paradise on earth. Our guide was professional and the itinerary was perfect.", rating: 5 },
-  { name: "Michael Chen", country: "Canada", text: "I was amazed by the beauty of Hunza Valley. The team organized everything perfectly from start to finish. Highly recommended.", rating: 5 },
-  { name: "Fatima Al-Rashid", country: "UAE", text: "The cultural tour exceeded all expectations. Lahore's food and history were fascinating. Will definitely book again for the northern trip.", rating: 4 },
 ];
 
 const heroSlides = [
@@ -103,12 +86,13 @@ const getTourImage = (tour) =>
   tour.image || tour.images?.[0] || tour.route?.find((stop) => stop.place?.image)?.place?.image || fallbackTourImage;
 
 const getDiscountedPrice = (tour) => {
-  const price = Number(tour?.price || 0);
+  const price = Number(tour?.pakistaniPrice || tour?.price || 0);
   const discount = Number(tour?.discount || 0);
   return discount > 0 ? Math.round(price * (1 - discount / 100)) : null;
 };
 
 const Home = (props) => {
+  const navigate = useNavigate();
   const context = useOutletContext() || {};
   const {
     places = [],
@@ -122,6 +106,9 @@ const Home = (props) => {
   const [tours, setTours] = useState([]);
   const [loadingTours, setLoadingTours] = useState(true);
   const [heroSearch, setHeroSearch] = useState("");
+  const [regions, setRegions] = useState([]);
+  const [testimonials, setTestimonials] = useState([]);
+  const [heroStats, setHeroStats] = useState({ totalPlaces: 0, averageRating: 4.8, happyTravelers: 0 });
 
   useEffect(() => {
     const fetchTours = async () => {
@@ -136,6 +123,48 @@ const Home = (props) => {
       }
     };
     fetchTours();
+  }, []);
+
+  useEffect(() => {
+    const fetchRegions = async () => {
+      try {
+        const { data } = await api.get("/regions?status=active");
+        setRegions(Array.isArray(data) ? data : []);
+      } catch {
+        setRegions([]);
+      }
+    };
+    fetchRegions();
+  }, []);
+
+  useEffect(() => {
+    const fetchTestimonials = async () => {
+      try {
+        const { data } = await api.get("/feedback?featured=true&limit=6");
+        const feedbackArr = Array.isArray(data) ? data : [];
+        if (feedbackArr.length > 0) {
+          setTestimonials(feedbackArr);
+        } else {
+          const { data: allFeedback } = await api.get("/feedback?limit=6");
+          setTestimonials(Array.isArray(allFeedback) ? allFeedback : []);
+        }
+      } catch {
+        setTestimonials([]);
+      }
+    };
+    fetchTestimonials();
+  }, []);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const { data } = await api.get("/auth/public-stats");
+        setHeroStats(data);
+      } catch {
+        // Keep defaults
+      }
+    };
+    fetchStats();
   }, []);
 
   const filteredPlaces = places.filter((place) => {
@@ -155,7 +184,7 @@ const Home = (props) => {
   const handleHeroSearch = (event) => {
     event.preventDefault();
     if (heroSearch.trim()) {
-      window.location.href = `/tours?q=${encodeURIComponent(heroSearch.trim())}`;
+      navigate(`/tours?q=${encodeURIComponent(heroSearch.trim())}`);
     }
   };
 
@@ -166,6 +195,7 @@ const Home = (props) => {
         searchValue={heroSearch}
         onSearchChange={setHeroSearch}
         onSearchSubmit={handleHeroSearch}
+        stats={heroStats}
       />
       <section className="border-b bg-white py-12">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 sm:px-6 md:grid-cols-3">
@@ -234,12 +264,17 @@ const Home = (props) => {
                           {discountedPrice ? (
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-xl font-bold text-primary">PKR {discountedPrice.toLocaleString()}</span>
-                              <span className="text-sm text-muted-foreground line-through">PKR {Number(tour.price || 0).toLocaleString()}</span>
+                              <span className="text-sm text-muted-foreground line-through">PKR {(tour.pakistaniPrice || tour.price || 0).toLocaleString()}</span>
                             </div>
                           ) : (
-                            <span className="text-xl font-bold text-primary">PKR {Number(tour.price || 0).toLocaleString()}</span>
+                            <span className="text-xl font-bold text-primary">PKR {(tour.pakistaniPrice || tour.price || 0).toLocaleString()}</span>
                           )}
-                          <p className="text-xs text-muted-foreground">per person</p>
+                          <p className="text-xs text-muted-foreground">
+                            per person
+                            {tour.foreignerPrice && (
+                              <span className="ml-1">| ~${Math.round(tour.foreignerPrice / 280)} USD for foreigners</span>
+                            )}
+                          </p>
                         </div>
                         <Button asChild size="sm" className="bg-terracotta-500 text-white hover:bg-terracotta-600">
                           <Link to="/booking">Book Now</Link>
@@ -265,12 +300,12 @@ const Home = (props) => {
 
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
             {regions.map((region) => (
-              <Link key={region.name} to={`/?region=${encodeURIComponent(region.name)}`} className="group relative h-48 overflow-hidden rounded-xl sm:h-56">
-                <img src={region.image} alt={region.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+              <Link key={region._id || region.name} to={`/?region=${encodeURIComponent(region.name)}`} className="group relative h-48 overflow-hidden rounded-xl sm:h-56">
+                <img src={region.image || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80"} alt={region.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-4">
                   <h3 className="text-lg font-semibold text-white">{region.name}</h3>
-                  <p className="text-sm text-white/70">{region.count}</p>
+                  <p className="text-sm text-white/70">{region.placeCount || 0} places</p>
                 </div>
               </Link>
             ))}
@@ -316,25 +351,29 @@ const Home = (props) => {
             <p className="mt-2 text-teal-200">Real experiences from real travelers</p>
           </div>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {testimonials.map((testimonial) => (
-              <Card key={testimonial.name} className="border-white/10 bg-white/10 text-white">
+            {testimonials.length > 0 ? testimonials.slice(0, 3).map((testimonial) => (
+              <Card key={testimonial._id || testimonial.name} className="border-white/10 bg-white/10 text-white">
                 <CardContent className="p-6">
                   <div className="mb-4 flex gap-1">
                     {Array.from({ length: 5 }).map((_, index) => (
-                      <Star key={index} className={`size-4 ${index < testimonial.rating ? "fill-terracotta-400 text-terracotta-400" : "text-white/30"}`} />
+                      <Star key={index} className={`size-4 ${index < (testimonial.rating || 5) ? "fill-terracotta-400 text-terracotta-400" : "text-white/30"}`} />
                     ))}
                   </div>
-                  <p className="mb-4 text-sm leading-relaxed text-white/80">&quot;{testimonial.text}&quot;</p>
+                  <p className="mb-4 text-sm leading-relaxed text-white/80">&quot;{testimonial.feedBackText || testimonial.text || testimonial.comment}&quot;</p>
                   <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-full bg-white/20 text-sm font-semibold">{testimonial.name.charAt(0)}</div>
+                    <div className="flex size-10 items-center justify-center rounded-full bg-white/20 text-sm font-semibold">{(testimonial.name || "A").charAt(0)}</div>
                     <div>
                       <p className="text-sm font-medium">{testimonial.name}</p>
-                      <p className="text-xs text-white/60">{testimonial.country}</p>
+                      <p className="text-xs text-white/60">{testimonial.country || "Pakistan"}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            )) : (
+              <div className="col-span-3 text-center text-white/60">
+                <p>No reviews yet. Be the first to share your experience!</p>
+              </div>
+            )}
           </div>
         </div>
       </section>

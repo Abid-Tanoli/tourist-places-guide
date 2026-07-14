@@ -1,9 +1,14 @@
 import crypto from "crypto";
 
-// Ensure we have a key derived from JWT_SECRET or a fallback
+// Dedicated encryption key for CNIC/Passport — independent from JWT secrets
 const getEncryptionKey = () => {
-  const secret = process.env.JWT_SECRET || "fallback_secret_key_at_least_32_chars";
-  return crypto.createHash("sha256").update(secret).digest();
+  const key = process.env.ENCRYPTION_KEY;
+  if (key) {
+    return crypto.createHash("sha256").update(key).digest();
+  }
+  // Fallback only for development — never use in production
+  console.warn("ENCRYPTION_KEY not set — using fallback key. Set ENCRYPTION_KEY in .env for production.");
+  return crypto.createHash("sha256").update("fallback_secret_key_at_least_32_chars").digest();
 };
 
 const ALGORITHM = "aes-256-cbc";

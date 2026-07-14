@@ -28,6 +28,15 @@ const feedbackSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    featured: {
+      type: Boolean,
+      default: false,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "approved",
+    },
   },
   { timestamps: true }
 );

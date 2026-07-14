@@ -77,7 +77,10 @@ const AdminTours = () => {
                     {tour.days} {tour.days > 1 ? "days" : "day"}
                   </td>
                   <td className="px-4 py-3 text-gray-700">
-                    PKR {Number(tour.price || 0).toLocaleString()}
+                    <div>PKR {(tour.pakistaniPrice || 0).toLocaleString()}</div>
+                    {tour.foreignerPrice && (
+                      <div className="text-xs text-gray-500">Int'l: PKR {tour.foreignerPrice.toLocaleString()}</div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-gray-700">
                     {tour.discount ? `${tour.discount}%` : "-"}

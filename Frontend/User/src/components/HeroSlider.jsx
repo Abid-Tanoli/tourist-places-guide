@@ -11,6 +11,7 @@ const HeroSlider = ({
   searchValue,
   onSearchChange,
   onSearchSubmit,
+  stats = {},
 }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -100,9 +101,9 @@ const HeroSlider = ({
           </div>
 
           <div className="mt-8 flex flex-wrap items-center gap-6 text-sm text-white/70">
-            <div className="flex items-center gap-2"><Mountain className="size-4 text-terracotta-400" />50+ Destinations</div>
-            <div className="flex items-center gap-2"><Star className="size-4 text-terracotta-400" />4.8 Average Rating</div>
-            <div className="flex items-center gap-2"><Users className="size-4 text-terracotta-400" />10K+ Happy Travelers</div>
+            <div className="flex items-center gap-2"><Mountain className="size-4 text-terracotta-400" />{stats.totalPlaces || 50}+ Destinations</div>
+            <div className="flex items-center gap-2"><Star className="size-4 text-terracotta-400" />{stats.averageRating || 4.8} Average Rating</div>
+            <div className="flex items-center gap-2"><Users className="size-4 text-terracotta-400" />{stats.happyTravelers ? `${stats.happyTravelers}+` : "10K+"} Happy Travelers</div>
           </div>
         </div>
       </div>

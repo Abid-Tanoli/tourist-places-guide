@@ -30,16 +30,19 @@ const getApiError = (error, fallback) => {
   return error.response?.data?.message || fallback;
 };
 
-const getTourPrice = (tour) => {
-  const price = Number(tour?.price || 0);
+const getTourPrice = (tour, userType) => {
+  const basePrice = userType === "foreigner"
+    ? (Number(tour?.foreignerPrice || 0) || Number(tour?.price || 0))
+    : (Number(tour?.pakistaniPrice || 0) || Number(tour?.price || 0));
   const discount = Number(tour?.discount || 0);
-  return discount > 0 ? Math.round(price * (1 - discount / 100)) : price;
+  return discount > 0 ? Math.round(basePrice * (1 - discount / 100)) : basePrice;
 };
 
 const Booking = () => {
   const { user, isAuthenticated } = useAuth();
   const [tours, setTours] = useState([]);
   const [selectedTour, setSelectedTour] = useState("");
+  const [selectedDeparture, setSelectedDeparture] = useState("");
   const [userType, setUserType] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -84,6 +87,7 @@ const Booking = () => {
 
   const resetForm = () => {
     setSelectedTour("");
+    setSelectedDeparture("");
     setUserType("");
     if (!isAuthenticated) {
       setName("");
@@ -116,6 +120,21 @@ const Booking = () => {
 
     const selectedTourDetails = tours.find((tour) => tour._id === selectedTour);
 
+    // Build departure data
+    let departureData = {};
+    if (selectedDeparture && selectedTourDetails?.departures) {
+      const dep = selectedTourDetails.departures.find((d) => d._id === selectedDeparture);
+      if (dep) {
+        departureData = {
+          departure: {
+            departureId: dep._id,
+            date: dep.date,
+            time: dep.time || "",
+          },
+        };
+      }
+    }
+
     try {
       setSubmitting(true);
       const { data } = await api.post("/bookings", {
@@ -129,6 +148,7 @@ const Booking = () => {
         passport,
         guests: { adults: Number(adults), children: Number(children) },
         notes,
+        ...departureData,
       });
       setCreatedBooking({ ...data, tour: selectedTourDetails });
       toast.success("Booking created! Choose a payment method below.");
@@ -145,7 +165,7 @@ const Booking = () => {
 
     try {
       if (paymentMethod === "cod") {
-        await api.post("/payment/confirm", { paymentIntentId: null, bookingId: createdBooking._id, method: "cod" });
+        await api.post("/payment/confirm-cod", { bookingId: createdBooking._id });
         toast.success("Booking confirmed! Pay on arrival.");
         setCreatedBooking(null);
         resetForm();
@@ -175,9 +195,10 @@ const Booking = () => {
   };
 
   const selectedTourDetails = tours.find((tour) => tour._id === selectedTour);
+  const availableDepartures = selectedTourDetails?.departures?.filter((d) => d.status === "active" && (d.capacity - d.bookedSeats) > 0) || [];
   const adultCount = Number(adults || 0);
   const guestLabel = `${adultCount} adult${adultCount === 1 ? "" : "s"}`;
-  const totalPrice = selectedTourDetails ? getTourPrice(selectedTourDetails) * adultCount : 0;
+  const totalPrice = selectedTourDetails ? getTourPrice(selectedTourDetails, userType) * adultCount : 0;
 
   return (
     <div className="min-h-screen bg-sand-50">
@@ -293,12 +314,45 @@ const Booking = () => {
                     <SelectContent>
                       {tours.map((tour) => (
                         <SelectItem key={tour._id} value={tour._id}>
-                          {tour.name} ({tour.days} days) - PKR {tour.price?.toLocaleString()}
+                          {tour.name} ({tour.days} days) - PKR {(tour.pakistaniPrice || tour.price || 0).toLocaleString()}
+                          {tour.foreignerPrice ? ` / $${Math.round(tour.foreignerPrice / 280)}` : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+
+                {availableDepartures.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Select Departure Date *</Label>
+                    <Select value={selectedDeparture} onValueChange={setSelectedDeparture}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a departure date" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableDepartures.map((dep) => {
+                          const remaining = dep.capacity - dep.bookedSeats;
+                          const dateStr = new Date(dep.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+                          return (
+                            <SelectItem key={dep._id} value={dep._id}>
+                              {dateStr}{dep.time ? ` at ${dep.time}` : ""} — {remaining} seat{remaining !== 1 ? "s" : ""} left
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    {selectedDeparture && (() => {
+                      const dep = availableDepartures.find((d) => d._id === selectedDeparture);
+                      if (!dep) return null;
+                      const remaining = dep.capacity - dep.bookedSeats;
+                      return (
+                        <p className="text-xs text-muted-foreground">
+                          {remaining} seat{remaining !== 1 ? "s" : ""} remaining for this departure
+                        </p>
+                      );
+                    })()}
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label>Visitor Type *</Label>

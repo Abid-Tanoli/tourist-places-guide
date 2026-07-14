@@ -23,20 +23,24 @@ const configureMiddleware = (app) => {
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
   app.use(morgan("dev"));
 
+  const isDev = process.env.NODE_ENV !== "production";
+
   const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 200,
+    max: isDev ? 10000 : 200,
     message: { message: "Too many requests, please try again later." },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: () => isDev,
   });
 
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 15,
+    max: isDev ? 10000 : 15,
     message: { message: "Too many auth attempts, please try again later." },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: () => isDev,
   });
 
   app.use("/api/", generalLimiter);
