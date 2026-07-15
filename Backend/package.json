@@ -10,7 +10,9 @@
     "seed:destroy": "node seed/seed.js -d",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "migrate:images": "node scripts/migrate-base64-to-cloudinary.js",
+    "migrate:images:dry": "node scripts/migrate-base64-to-cloudinary.js --dry-run"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

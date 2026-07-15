@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import FallbackImage from "../components/FallbackImage";
 import api from "../api/axios";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -171,7 +172,7 @@ const PlaceDetails = () => {
     <div className="min-h-screen bg-sand-50">
       {/* Hero Image */}
       <div className="relative h-[50vh] min-h-[400px]">
-        <img
+        <FallbackImage
           src={place.image}
           alt={place.name}
           className="w-full h-full object-cover"
@@ -348,7 +349,7 @@ const PlaceDetails = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {place.gallery.map((img, i) => (
                       <div key={i} className="relative aspect-video rounded-lg overflow-hidden group">
-                        <img
+                        <FallbackImage
                           src={img.url}
                           alt={img.alt || `${place.name} ${i + 1}`}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

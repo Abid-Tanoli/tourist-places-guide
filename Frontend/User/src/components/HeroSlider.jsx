@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import FallbackImage from "./FallbackImage";
 import { ChevronLeft, ChevronRight, Mountain, Search, Star, Users } from "lucide-react";
 
 const SLIDE_INTERVAL_MS = 5500;
@@ -89,7 +90,7 @@ const HeroSlider = ({
     <section className="relative flex h-[85vh] min-h-[500px] sm:min-h-[600px] items-center overflow-hidden">
       <div className="absolute inset-0">
         {slides.map((slide, index) => (
-          <img
+          <FallbackImage
             key={slide.image}
             src={slide.image}
             alt={slide.alt || `${slide.badge} destination`}

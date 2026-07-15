@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import FallbackImage from "../components/FallbackImage";
 import api from "../api/axios";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -78,7 +79,7 @@ const Wishlist = () => {
             {places.map((place) => (
               <Card key={place._id} className="overflow-hidden group hover:shadow-lg transition-all duration-300">
                 <div className="relative h-48 overflow-hidden">
-                  <img
+                  <FallbackImage
                     src={place.image}
                     alt={place.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
+import FallbackImage from "../components/FallbackImage";
 import api from "../api/axios";
 import TourMap from "../components/TourMap";
 import { Button } from "@/components/ui/button";
@@ -192,7 +193,7 @@ const TourDetailsDialog = ({ tour, onClose }) => {
                 {gallery.map((image, index) => (
                   <CarouselItem key={`${image}-${index}`}>
                     <div className="relative h-52 sm:h-72 md:h-80">
-                      <img src={image} alt={`${tour.name} ${index + 1}`} className="h-full w-full object-cover" />
+                      <FallbackImage src={image} alt={`${tour.name} ${index + 1}`} className="h-full w-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                       <div className="absolute bottom-4 left-4 right-4 text-white sm:bottom-6 sm:left-6 sm:right-6">
                         <div className="mb-2 flex flex-wrap gap-2">
@@ -726,7 +727,7 @@ const Tours = () => {
                 return (
                   <Card key={tour._id || tour.id} className="overflow-hidden group hover:shadow-lg transition-all duration-300 flex flex-col">
                     <div className="relative h-48 overflow-hidden">
-                      <img
+                      <FallbackImage
                         src={getTourImage(tour)}
                         alt={tour.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

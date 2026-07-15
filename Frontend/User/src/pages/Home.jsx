@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import HeroSlider from "../components/HeroSlider";
+import FallbackImage from "../components/FallbackImage";
 import api from "../api/axios";
 import {
   ArrowRight,
@@ -272,7 +273,7 @@ const Home = (props) => {
                 return (
                   <Card key={tour._id || tour.id} className="group overflow-hidden transition-all duration-300 hover:shadow-lg">
                     <div className="relative h-48 overflow-hidden">
-                      <img src={getTourImage(tour)} alt={tour.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                      <FallbackImage src={getTourImage(tour)} alt={tour.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                       {tour.discount > 0 && <Badge className="absolute left-3 top-3 border-0 bg-terracotta-500 text-white">{tour.discount}% OFF</Badge>}
                       {tour.featured && !tour.discount && <Badge className="absolute left-3 top-3 border-0 bg-primary text-white">Featured</Badge>}
                     </div>
@@ -328,7 +329,7 @@ const Home = (props) => {
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
             {regions.map((region) => (
               <Link key={region._id || region.name} to={`/?region=${encodeURIComponent(region.name)}`} className="group relative h-48 overflow-hidden rounded-xl sm:h-56">
-                <img src={region.image || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80"} alt={region.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                <FallbackImage src={region.image} alt={region.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-4">
                   <h3 className="text-lg font-semibold text-white">{region.name}</h3>
@@ -351,7 +352,7 @@ const Home = (props) => {
               {popularPlaces.map((place) => (
                 <Card key={place._id || place.id} className="group overflow-hidden transition-all duration-300 hover:shadow-lg">
                   <div className="relative h-52 overflow-hidden">
-                    <img src={place.image} alt={place.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <FallbackImage src={place.image} alt={place.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     <Badge className="absolute right-3 top-3 border-0 bg-white/90 text-foreground backdrop-blur-sm">
                       <Star className="mr-1 size-3 fill-terracotta-500 text-terracotta-500" />{place.rating}
                     </Badge>
