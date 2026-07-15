@@ -27,11 +27,18 @@ const formatUser = (user) => ({
   isEmailVerified: user.isEmailVerified || false,
 });
 
+const isProd = process.env.NODE_ENV === "production";
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: isProd ? "none" : "lax",
+  path: "/",
+};
+
 const setRefreshTokenCookie = (res, token) => {
   res.cookie("refreshToken", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    ...cookieOptions,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 };
@@ -147,10 +154,10 @@ export const logout = async (req, res, next) => {
       await User.findByIdAndUpdate(decoded.id, { refreshToken: null });
     }
 
-    res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken", cookieOptions);
     res.json({ message: "Logged out successfully." });
   } catch (error) {
-    res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken", cookieOptions);
     res.json({ message: "Logged out successfully." });
   }
 };
@@ -210,7 +217,7 @@ export const changePassword = async (req, res, next) => {
     user.refreshToken = null;
     await user.save();
 
-    res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken", cookieOptions);
     res.json({ message: "Password changed successfully. Please login again." });
   } catch (error) {
     next(error);

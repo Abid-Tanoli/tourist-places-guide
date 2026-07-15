@@ -38,6 +38,15 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+const healthResponse = () => ({
+  status: "ok",
+  uptime: process.uptime(),
+  timestamp: new Date().toISOString(),
+});
+
+app.get("/", (_req, res) => res.json(healthResponse()));
+app.get("/health", (_req, res) => res.json(healthResponse()));
+
 app.use("/api/auth", authRoutes);
 app.use("/api/places", placeRoutes);
 app.use("/api/tours", tourRoutes);
