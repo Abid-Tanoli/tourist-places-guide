@@ -7,11 +7,16 @@ export const notFound = (req, res, next) => {
 export const errorHandler = (err, req, res, _next) => {
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
 
+  console.error(`[${req.method}] ${req.originalUrl} — ${err.message}`);
+  if (process.env.NODE_ENV !== "production") {
+    console.error(err.stack);
+  }
+
   const response = {
     message: err.message || "Server error.",
   };
 
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV !== "production") {
     response.stack = err.stack;
   }
 
